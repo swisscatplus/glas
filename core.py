@@ -8,7 +8,7 @@ from mariadb.connectionpool import ConnectionPool
 from pydantic import BaseModel
 from uvicorn import Config, Server
 
-from src.orchestrator.orchestrator import WorkflowOrchestrator
+from src.orchestrator.core import WorkflowOrchestrator
 
 
 class Msg(BaseModel):

@@ -4,7 +4,7 @@ import sys
 from loguru import logger
 from mariadb.connectionpool import ConnectionPool
 
-from src.orchestrator.orchestrator import WorkflowOrchestrator
+from src.orchestrator.core import WorkflowOrchestrator
 from src.scheduler.core import RobotScheduler
 
 
