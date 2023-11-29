@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from uvicorn import Config, Server
 
 from src.orchestrator.core import WorkflowOrchestrator
+from src.workflow import WorkflowModel
+from src.nodes.base import BaseNodeModel
 
 
 class Msg(BaseModel):
@@ -105,7 +107,11 @@ class RobotScheduler:
         return {"data": self.orchestrator.nodes[0]}
 
     def get_running(self):
-        return {"running": "not implemented"}
+        running_workflows = [
+            {"id": uuid, "workflow": w.model_dump()}
+            for uuid, w in self.orchestrator.running_workflows
+        ]
+        return running_workflows
 
     def lab_add_workflow(self):
         return {"data": "AWDWAD"}
