@@ -21,7 +21,6 @@ class RobotScheduler:
         self,
         orchestrator: WorkflowOrchestrator,
         port: int,
-        db_pool: ConnectionPool,
     ) -> None:
         self.logger = logger.bind(app="Scheduler")
 
@@ -33,12 +32,8 @@ class RobotScheduler:
             allow_headers=["*"],
         )
         self.orchestrator = orchestrator
-        self.db_pool = db_pool
-        self.db_conn = self.db_pool.get_connection()
-        self.db_conn.autocommit = True
-        self.db_cursor = self.db_conn.cursor()
 
-        self.config = Config(self.api, host="0.0.0.0", port=port, log_level="error")
+        self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
 
         self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
@@ -112,10 +107,7 @@ class RobotScheduler:
         return {"data": self.orchestrator.nodes[0]}
 
     def get_running(self):
-        self.db_cursor.execute(
-            "SELECT * FROM running_workflows JOIN workflows ON running_workflows.workflow_id = workflows.id"
-        )
-        return {"running": self.db_cursor.fetchall()}
+        return {"running": "not implemented"}
 
     def lab_add_workflow(self):
         return {"data": "AWDWAD"}

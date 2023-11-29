@@ -11,20 +11,8 @@ def main():
 
     setup_logger(args.logs)
 
-    db_pool = ConnectionPool(
-        pool_name="main_pool",
-        user="epfl",
-        password="Super2019",
-        host="localhost",
-        database="epfl",
-        pool_size=20,
-    )
-
-    wm = WorkflowOrchestrator(
-        args.path_to_nodes, args.path_to_workflows, db_pool, args.verbose
-    )
-
-    app = RobotScheduler(wm, args.port, db_pool)
+    wm = WorkflowOrchestrator(args.path_to_nodes, args.path_to_workflows, args.verbose)
+    app = RobotScheduler(wm, args.port)
     app.run()
 
 
