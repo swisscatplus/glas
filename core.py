@@ -1,86 +1,121 @@
-import argparse
-import sys
+import random
+import sqlite3
 
+from fastapi import APIRouter, Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from mariadb.connectionpool import ConnectionPool
+from pydantic import BaseModel
+from uvicorn import Config, Server
 
 from src.orchestrator.orchestrator import WorkflowOrchestrator
-from src.scheduler.scheduler import RobotScheduler
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        prog="RobotScheduler",
-        description="Scheduler to automate the lab's worlkflows",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=8000,
-        help="Port of the scheduler to communicate with",
-    )
-    parser.add_argument(
-        "-n",
-        "--nodes",
-        type=str,
-        default="./config/nodes.json",
-        help="File path of the node descriptions",
-        dest="path_to_nodes",
-    )
-    parser.add_argument(
-        "-w",
-        "--workflows",
-        type=str,
-        default="./config/workflows.json",
-        help="File path of the workflow descriptions",
-        dest="path_to_workflows",
-    )
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-    parser.add_argument(
-        "-l", "--logs", action="store_true", help="Store the logs in a file as well"
-    )
-
-    return parser.parse_args()
+class Msg(BaseModel):
+    data: str
+    error: int
 
 
-def setup_logger(save_logs: bool = True) -> None:
-    fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
+class RobotScheduler:
+    def __init__(
+        self,
+        orchestrator: WorkflowOrchestrator,
+        port: int,
+        db_pool: ConnectionPool,
+    ) -> None:
+        self.logger = logger.bind(app="Scheduler")
 
-    logger.remove(0)
-    logger.add(
-        sys.stdout,
-        level="TRACE",
-        format=fmt,
-    )
+        self.api = FastAPI()
+        self.api.add_middleware(
+            CORSMiddleware,
+            allow_origins=["http://localhost:5173"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        self.orchestrator = orchestrator
+        self.db_pool = db_pool
+        self.db_conn = self.db_pool.get_connection()
+        self.db_conn.autocommit = True
+        self.db_cursor = self.db_conn.cursor()
 
-    if save_logs:
-        logger.add("scheduler.log", format=fmt, rotation="10 MB")
+        self.config = Config(self.api, host="0.0.0.0", port=port, log_level="error")
+        self.server = Server(config=self.config)
 
+        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
 
-def main():
-    args = parse_args()
+        self.init_routes()
+        self.init_lab_routes()
 
-    setup_logger(args.logs)
+        self.api.add_websocket_route("/ws", self.websocket_endpoint)
 
-    db_pool = ConnectionPool(
-        pool_name="main_pool",
-        user="epfl",
-        password="Super2019",
-        host="localhost",
-        database="epfl",
-        pool_size=20,
-    )
+        self.api.include_router(self.lab_router)
 
-    wm = WorkflowOrchestrator(
-        args.path_to_nodes, args.path_to_workflows, db_pool, args.verbose
-    )
+    def init_routes(self) -> None:
+        self.api.add_api_route("/", self.root, methods=["GET"])
+        self.api.add_api_route("/stop", self.stop, methods=["GET"])
+        self.api.add_api_route("/add", self.add, methods=["GET"])
+        self.api.add_api_route("/running", self.get_running, methods=["GET"])
 
-    app = RobotScheduler(wm, args.port, db_pool)
-    app.run()
+    def init_lab_routes(self) -> None:
+        self.lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
 
+    async def websocket_endpoint(self, websocket: WebSocket):
+        await websocket.accept()
+        self.orchestrator.add_observer(websocket)
+        self.logger.info(
+            f"connected observer {websocket.client.host}:{websocket.client.port}"
+        )
 
-if __name__ == "__main__":
-    main()
+        try:
+            while True:
+                msg = await websocket.receive_text()
+
+                if msg.lower() == "close":
+                    self.orchestrator.remove_observer(websocket)
+        except WebSocketDisconnect:
+            self.logger.info(
+                f"disconnected observer {websocket.client.host}:{websocket.client.port}"
+            )
+            self.orchestrator.remove_observer(websocket)
+
+    def run(self) -> None:
+        self.logger.info(f"started on {self.config.host}:{self.config.port}")
+        self.orchestrator.run()
+        self.server.run()  # need to run as last
+
+    def root(self):
+        msg = Msg(data="AWDAWD", error=200)
+        return {"msg": msg}
+
+    def stop(self):
+        self.orchestrator.stop()
+        self.server.should_exit = True
+        return {"terminated": True}
+
+    def add(self):
+        w = random.choice(self.orchestrator.workflows)
+        # self.orchestrator.add_workflow(w)
+        self.orchestrator.add_workflow(self.orchestrator.workflows[0])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[12])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[5])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[8])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[10])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[2])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[9])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[1])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[11])
+        self.orchestrator.add_workflow(self.orchestrator.workflows[10])
+        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
+        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
+        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
+        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
+        return {"data": self.orchestrator.nodes[0]}
+
+    def get_running(self):
+        self.db_cursor.execute(
+            "SELECT * FROM running_workflows JOIN workflows ON running_workflows.workflow_id = workflows.id"
+        )
+        return {"running": self.db_cursor.fetchall()}
+
+    def lab_add_workflow(self):
+        return {"data": "AWDWAD"}
