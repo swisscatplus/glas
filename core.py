@@ -81,6 +81,13 @@ class RobotScheduler:
         return {"msg": msg}
 
     def stop(self):
+        """Stop the entire scheduler due to some error of some kind
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        MIGHT NOT STOP THE API ITSELF TO BE ABLE TO REBOOT FROM THE CONTROL
+        PANEL DIRECTLY
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        """
         self.orchestrator.stop()
         self.server.should_exit = True
         return {"terminated": True}
