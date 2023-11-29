@@ -1,10 +1,8 @@
 import random
-import sqlite3
 
-from fastapi import APIRouter, Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
-from mariadb.connectionpool import ConnectionPool
 from pydantic import BaseModel
 from uvicorn import Config, Server
 
