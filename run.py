@@ -11,7 +11,9 @@ def main():
 
     setup_logger(args.logs)
 
-    wm = WorkflowOrchestrator(args.path_to_nodes, args.path_to_workflows, args.verbose)
+    wm = WorkflowOrchestrator(
+        args.path_to_nodes, args.path_to_workflows, args.verbose, args.emulate
+    )
     app = RobotScheduler(wm, args.port)
     app.run()
 

@@ -35,5 +35,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-l", "--logs", action="store_true", help="Store the logs in a file as well"
     )
+    parser.add_argument(
+        "-e", "--emulate", action="store_true", help="Emulate the behavior of the nodes"
+    )
 
     return parser.parse_args()
