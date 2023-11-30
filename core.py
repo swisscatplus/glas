@@ -46,6 +46,7 @@ class RobotScheduler:
 
     def init_routes(self) -> None:
         self.api.add_api_route("/", self.root, methods=["GET"])
+        self.api.add_api_route("/diagnostics", self.diagnostics, methods=["GET"])
         self.api.add_api_route("/stop", self.stop, methods=["GET"])
         self.api.add_api_route("/full-stop", self.full_stop, methods=["GET"])
         self.api.add_api_route("/run", self.run_orchestrator, methods=["GET"])
@@ -91,6 +92,9 @@ class RobotScheduler:
         self.orchestrator.run()
         self.server.run()  # need to run as last
 
+    def diagnostics(self):
+        return {"orchestrator": self.orchestrator.is_running()}
+
     def root(self):
         msg = Msg(data="AWDAWD", error=200)
         return {"msg": msg}
@@ -104,8 +108,7 @@ class RobotScheduler:
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         """
         self.orchestrator.stop()
-        # self.server.should_exit = True
-        return {"terminated": True}
+        return {"orchestrator": False}
 
     def full_stop(self):
         self.stop()
@@ -114,7 +117,7 @@ class RobotScheduler:
 
     def run_orchestrator(self):
         self.orchestrator.run()
-        return {"started": True}
+        return {"orchestrator": True}
 
     @decorator_with_orchestrator
     def add(self):
