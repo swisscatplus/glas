@@ -1,4 +1,5 @@
 import random
+from functools import wraps
 
 from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,11 +47,25 @@ class RobotScheduler:
     def init_routes(self) -> None:
         self.api.add_api_route("/", self.root, methods=["GET"])
         self.api.add_api_route("/stop", self.stop, methods=["GET"])
+        self.api.add_api_route("/full-stop", self.full_stop, methods=["GET"])
+        self.api.add_api_route("/run", self.run_orchestrator, methods=["GET"])
         self.api.add_api_route("/add", self.add, methods=["GET"])
         self.api.add_api_route("/running", self.get_running, methods=["GET"])
 
     def init_lab_routes(self) -> None:
         self.lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
+
+    def decorator_with_orchestrator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwrgs):
+            if not self.orchestrator.is_running():
+                self.logger.error("The orchestrator is not running")
+                return
+
+            result = func(self, *args, **kwrgs)
+            return result
+
+        return wrapper
 
     async def websocket_endpoint(self, websocket: WebSocket):
         await websocket.accept()
@@ -89,9 +104,19 @@ class RobotScheduler:
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         """
         self.orchestrator.stop()
-        self.server.should_exit = True
+        # self.server.should_exit = True
         return {"terminated": True}
 
+    def full_stop(self):
+        self.stop()
+        self.server.should_exit = True
+        return {"fullStop": True}
+
+    def run_orchestrator(self):
+        self.orchestrator.run()
+        return {"started": True}
+
+    @decorator_with_orchestrator
     def add(self):
         w = random.choice(self.orchestrator.workflows)
         # self.orchestrator.add_workflow(w)
