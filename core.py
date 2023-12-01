@@ -99,7 +99,7 @@ class RobotScheduler:
         msg = Msg(data="AWDAWD", error=200)
         return {"msg": msg}
 
-    def stop(self):
+    def stop(self, full: bool = False):
         """Stop the entire scheduler due to some error of some kind
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -107,11 +107,11 @@ class RobotScheduler:
         PANEL DIRECTLY
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         """
-        self.orchestrator.stop()
+        self.orchestrator.stop(full)
         return {"orchestrator": False}
 
     def full_stop(self):
-        self.stop()
+        self.stop(True)
         self.server.should_exit = True
         return {"fullStop": True}
 
