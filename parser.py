@@ -39,4 +39,4 @@ def parse_args(args: list[str] = []) -> argparse.Namespace:
         "-e", "--emulate", action="store_true", help="Emulate the behavior of the nodes"
     )
 
-    return parser.parse_args(args)
+    return parser.parse_args() if args == [] else parser.parse_args(args)
