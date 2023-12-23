@@ -1,7 +1,7 @@
 import random
 from functools import wraps
 
-from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel
@@ -41,8 +41,6 @@ class RobotScheduler:
         self.init_routes()
         self.init_lab_routes()
 
-        self.api.add_websocket_route("/ws", self.websocket_endpoint)
-
         self.api.include_router(self.lab_router)
 
     def init_routes(self) -> None:
@@ -69,25 +67,6 @@ class RobotScheduler:
 
         return wrapper
 
-    async def websocket_endpoint(self, websocket: WebSocket):
-        await websocket.accept()
-        self.orchestrator.add_observer(websocket)
-        self.logger.info(
-            f"connected observer {websocket.client.host}:{websocket.client.port}"
-        )
-
-        try:
-            while True:
-                msg = await websocket.receive_text()
-
-                if msg.lower() == "close":
-                    self.orchestrator.remove_observer(websocket)
-        except WebSocketDisconnect:
-            self.logger.info(
-                f"disconnected observer {websocket.client.host}:{websocket.client.port}"
-            )
-            self.orchestrator.remove_observer(websocket)
-
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
         self.orchestrator.run()
@@ -100,19 +79,13 @@ class RobotScheduler:
         msg = Msg(data="AWDAWD", error=200)
         return {"msg": msg}
 
-    def stop(self, full: bool = False):
-        """Stop the entire scheduler due to some error of some kind
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        MIGHT NOT STOP THE API ITSELF TO BE ABLE TO REBOOT FROM THE CONTROL
-        PANEL DIRECTLY
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        """
-        self.orchestrator.stop(full)
+    def stop(self):
+        """Stop the entire scheduler due to some error of some kind"""
+        self.orchestrator.stop()
         return {"orchestrator": False}
 
     def full_stop(self):
-        self.stop(True)
+        self.stop()
         self.server.should_exit = True
         return {"fullStop": True}
 
