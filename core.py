@@ -1,4 +1,3 @@
-import random
 from functools import wraps
 
 from fastapi import APIRouter, FastAPI
@@ -36,12 +35,8 @@ class RobotScheduler:
         self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
 
-        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
-
         self.init_routes()
         self.init_lab_routes()
-
-        self.api.include_router(self.lab_router)
 
     def init_routes(self) -> None:
         self.api.add_api_route("/", self.root, methods=["GET"])
@@ -53,7 +48,11 @@ class RobotScheduler:
         self.api.add_api_route("/running", self.get_running, methods=["GET"])
 
     def init_lab_routes(self) -> None:
+        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
+        
         self.lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
+
+        self.api.include_router()
 
     def decorator_with_orchestrator(func):
         @wraps(func)
