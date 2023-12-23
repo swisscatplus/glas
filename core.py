@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from uvicorn import Config, Server
 
 from src.orchestrator.core import WorkflowOrchestrator
+from src.orchestrator.task import Task
 
 
 class Msg(BaseModel):
@@ -121,28 +122,30 @@ class RobotScheduler:
 
     @decorator_with_orchestrator
     def add(self):
-        w = random.choice(self.orchestrator.workflows)
+        for w in self.orchestrator.workflows:
+            self.orchestrator.add_task(Task(w, True))
+        # w = random.choice()
         # self.orchestrator.add_workflow(w)
-        self.orchestrator.add_workflow(self.orchestrator.workflows[0])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[12])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[5])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[8])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[10])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[2])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[9])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[1])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[11])
-        self.orchestrator.add_workflow(self.orchestrator.workflows[10])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[0])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[12])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[5])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[8])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[10])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[2])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[9])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[1])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[11])
+        # self.orchestrator.add_workflow(self.orchestrator.workflows[10])
         # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
         # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
         # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
         # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
-        return {"data": self.orchestrator.nodes[0]}
+        return {"data": "blablabla"}
 
     def get_running(self):
         running_workflows = [
             {"id": uuid, "workflow": w.model_dump()}
-            for uuid, w in self.orchestrator.running_workflows
+            for uuid, w in self.orchestrator.running_tasks
         ]
         return running_workflows
 
