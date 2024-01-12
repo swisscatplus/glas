@@ -15,6 +15,10 @@ class Msg(BaseModel):
     error: int
 
 
+class WorkflowAdd(BaseModel):
+    name: str
+
+
 class RobotScheduler:
     def __init__(
         self,
@@ -37,6 +41,7 @@ class RobotScheduler:
 
         self.init_routes()
         self.init_lab_routes()
+        self.init_api_routes()
 
     def init_routes(self) -> None:
         self.api.add_api_route("/", self.root, methods=["GET"])
@@ -44,15 +49,19 @@ class RobotScheduler:
         self.api.add_api_route("/stop", self.stop, methods=["GET"])
         self.api.add_api_route("/full-stop", self.full_stop, methods=["GET"])
         self.api.add_api_route("/run", self.run_orchestrator, methods=["GET"])
-        self.api.add_api_route("/add", self.add, methods=["GET"])
         self.api.add_api_route("/running", self.get_running, methods=["GET"])
+
+    def init_api_routes(self) -> None:
+        self.api_router = APIRouter(prefix="/api", tags=["Robot Scheduler API"])
+
+        self.api.include_router(self.api_router)
 
     def init_lab_routes(self) -> None:
         self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
-        
+
         self.lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
 
-        self.api.include_router()
+        self.api.include_router(self.lab_router)
 
     def decorator_with_orchestrator(func):
         @wraps(func)
@@ -92,28 +101,6 @@ class RobotScheduler:
         self.orchestrator.run()
         return {"orchestrator": True}
 
-    @decorator_with_orchestrator
-    def add(self):
-        for w in self.orchestrator.workflows:
-            self.orchestrator.add_task(Task(w, True))
-        # w = random.choice()
-        # self.orchestrator.add_workflow(w)
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[0])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[12])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[5])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[8])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[10])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[2])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[9])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[1])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[11])
-        # self.orchestrator.add_workflow(self.orchestrator.workflows[10])
-        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
-        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
-        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
-        # self.orchestrator.add_workflow(random.choice(self.orchestrator.workflows))
-        return {"data": "blablabla"}
-
     def get_running(self):
         running_workflows = [
             {"id": uuid, "workflow": w.model_dump()}
@@ -121,5 +108,9 @@ class RobotScheduler:
         ]
         return running_workflows
 
-    def lab_add_workflow(self):
-        return {"data": "AWDWAD"}
+    @decorator_with_orchestrator
+    def lab_add_workflow(self, workflow: WorkflowAdd):
+        for w in self.orchestrator.workflows:
+            if w.name == workflow.name:
+                self.orchestrator.add_task(Task(w, True))
+        return workflow
