@@ -1,7 +1,7 @@
 import atexit
 from functools import wraps
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel
@@ -43,21 +43,29 @@ class RobotScheduler:
         atexit.register(self.stop)
 
         self.init_routes()
-        self.init_lab_routes()
-        self.init_api_routes()
 
     def init_routes(self) -> None:
-        self.api.add_api_route("/", self.root, methods=["GET"])
-        self.api.add_api_route("/diagnostics", self.diagnostics, methods=["GET"])
-        self.api.add_api_route("/stop", self.stop, methods=["GET"])
-        self.api.add_api_route("/full-stop", self.full_stop, methods=["GET"])
-        self.api.add_api_route("/run", self.run_orchestrator, methods=["GET"])
-        self.api.add_api_route("/running", self.get_running, methods=["GET"])
+        self.init_lab_routes()
+        self.init_admin_routes()
+        self.init_monitoring_routes()
 
-    def init_api_routes(self) -> None:
-        self.api_router = APIRouter(prefix="/api", tags=["Robot Scheduler API"])
+    def init_monitoring_routes(self) -> None:
+        self.api_monitoring = APIRouter(prefix="/monitoring", tags=["Robot Scheduler Monitoring"])
 
-        self.api.include_router(self.api_router)
+        self.api_monitoring.add_api_route("/diagnostics", self.diagnostics, methods=["GET"])
+        self.api_monitoring.add_api_route("/running", self.get_running, methods=["GET"])
+
+        self.api.include_router(self.api_monitoring)
+
+    def init_admin_routes(self) -> None:
+        """TODO Those routes NEED to be account/key/password protected !!"""
+        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
+
+        self.admin_router.add_api_route("/start", self.start_orchestrator, methods=["GET"])
+        self.admin_router.add_api_route("/stop", self.stop, methods=["GET"])
+        self.admin_router.add_api_route("/full-stop", self.full_stop, methods=["GET"])
+
+        self.api.include_router(self.admin_router)
 
     def init_lab_routes(self) -> None:
         self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
@@ -80,40 +88,37 @@ class RobotScheduler:
 
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
-        self.orchestrator.run()
+        self.orchestrator.start()
         self.server.run()  # need to run as last
 
-    def diagnostics(self):
-        return {"orchestrator": self.orchestrator.is_running()}
-
-    def root(self):
-        msg = Msg(data="AWDAWD", error=200)
-        return {"msg": msg}
+    def diagnostics(self, response: Response):
+        # response.status_code = status.HTTP_202_ACCEPTED
+        return {"orchestrator": self.orchestrator.get_state()}
 
     def stop(self):
         """Stop the entire scheduler due to some error of some kind"""
         self.orchestrator.stop()
-        return {"orchestrator": False}
+        return {"orchestrator": self.orchestrator.get_state()}
 
     def full_stop(self):
         self.stop()
         self.server.should_exit = True
         return {"fullStop": True}
 
-    def run_orchestrator(self):
-        self.orchestrator.run()
-        return {"orchestrator": True}
+    def start_orchestrator(self):
+        self.orchestrator.start()
+        return {"orchestrator": self.orchestrator.get_state()}
 
     def get_running(self):
+        # TODO remove finished tasks from the list
         running_workflows = [
-            {"id": uuid, "workflow": w.model_dump()}
-            for uuid, w in self.orchestrator.running_tasks
+            {"id": task.uuid, "workflow": task.workflow.model_dump()} for _, task in self.orchestrator.running_tasks
         ]
         return running_workflows
 
     @decorator_with_orchestrator
     def lab_add_workflow(self, workflow: WorkflowAdd):
         for w in self.orchestrator.workflows:
-            if w.name == workflow.name:
-                self.orchestrator.add_task(Task(w, True))
+            # if w.name == workflow.name:
+            self.orchestrator.add_task(Task(w, True))
         return workflow
