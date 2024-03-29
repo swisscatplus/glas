@@ -1,3 +1,4 @@
+import atexit
 from functools import wraps
 
 from fastapi import APIRouter, FastAPI
@@ -38,6 +39,8 @@ class RobotScheduler:
 
         self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
+
+        atexit.register(self.stop)
 
         self.init_routes()
         self.init_lab_routes()
