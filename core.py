@@ -111,9 +111,7 @@ class RobotScheduler:
 
     def get_running(self):
         # TODO remove finished tasks from the list
-        running_workflows = [
-            {"id": task.uuid, "workflow": task.workflow.model_dump()} for _, task in self.orchestrator.running_tasks
-        ]
+        running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return running_workflows
 
     @decorator_with_orchestrator
