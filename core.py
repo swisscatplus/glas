@@ -162,5 +162,5 @@ class RobotScheduler:
 
         for w in self.orchestrator.workflows:
             # if w.name == data.name:
-            self.orchestrator.add_task(Task(w, True))
+            self.orchestrator.add_task(w)
         return data
