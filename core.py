@@ -3,24 +3,11 @@ import atexit
 from fastapi import APIRouter, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
-from pydantic import BaseModel
 from uvicorn import Config, Server
 
 from src.orchestrator.core import WorkflowOrchestrator
 from src.orchestrator.task import Task, TaskModel
-
-
-class Msg(BaseModel):
-    data: str
-    error: int
-
-
-class WorkflowAdd(BaseModel):
-    name: str
-
-
-class DiagnosticModel(BaseModel):
-    orchestrator: str
+from src.scheduler.models import *
 
 
 class RobotScheduler:
@@ -118,7 +105,8 @@ class RobotScheduler:
 
     def diagnostics(self):
         """Get some information about the state of the scheduler and orchestrator."""
-        return DiagnosticModel(orchestrator=self.orchestrator.get_state().name)
+        nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
+        return DiagnosticModel(orchestrator=self.orchestrator.get_state().name, nodes=nodes)
 
     def stop(self, response: Response):
         """Stop the orchestrator."""
@@ -147,7 +135,7 @@ class RobotScheduler:
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return running_workflows
 
-    def lab_add_workflow(self, workflow: WorkflowAdd, response: Response):
+    def lab_add_workflow(self, data: PostWorkflow, response: Response):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
             self.logger.error("The orchestrator is not running")
@@ -155,6 +143,6 @@ class RobotScheduler:
             return
 
         for w in self.orchestrator.workflows:
-            if w.name == workflow.name:
+            if w.name == data.name:
                 self.orchestrator.add_task(Task(w, True))
-        return workflow
+        return data
