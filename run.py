@@ -1,9 +1,7 @@
-from mariadb.connectionpool import ConnectionPool
-
 from src.orchestrator.core import WorkflowOrchestrator
 from src.scheduler.core import RobotScheduler
-from src.scheduler.parser import parse_args
 from src.scheduler.logger import setup_logger
+from src.scheduler.parser import parse_args
 
 
 def main():
