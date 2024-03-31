@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from uvicorn import Config, Server
 
-from src.orchestrator.core import WorkflowOrchestrator
+from src.orchestrator.core import OrchestratorState, WorkflowOrchestrator
 from src.orchestrator.task import Task, TaskModel
 from src.scheduler.models import *
 
@@ -47,6 +47,16 @@ class RobotScheduler:
             self.diagnostics,
             methods=["GET"],
             responses={status.HTTP_200_OK: {"model": DiagnosticModel}},
+        )
+        self.api_monitoring.add_api_route(
+            "/orchestrator-status",
+            self.ochestrator_status,
+            methods=["GET"],
+            status_code=status.HTTP_204_NO_CONTENT,
+            responses={
+                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online."},
+                status.HTTP_410_GONE: {"description": "Orchestrator is offline."},
+            },
         )
         self.api_monitoring.add_api_route(
             "/running",
@@ -106,7 +116,15 @@ class RobotScheduler:
     def diagnostics(self):
         """Get some information about the state of the scheduler and orchestrator."""
         nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
-        return DiagnosticModel(orchestrator=self.orchestrator.get_state().name, nodes=nodes)
+        return DiagnosticModel(nodes=nodes)
+
+    def ochestrator_status(self, response: Response):
+        """Get the status of the orchestrator"""
+        if self.orchestrator.get_state() == OrchestratorState.RUNNING:
+            response.status_code = status.HTTP_204_NO_CONTENT
+        else:
+            response.status_code = status.HTTP_410_GONE
+        return
 
     def stop(self, response: Response):
         """Stop the orchestrator."""
@@ -143,6 +161,6 @@ class RobotScheduler:
             return
 
         for w in self.orchestrator.workflows:
-            if w.name == data.name:
-                self.orchestrator.add_task(Task(w, True))
+            # if w.name == data.name:
+            self.orchestrator.add_task(Task(w, True))
         return data

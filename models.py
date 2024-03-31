@@ -8,5 +8,4 @@ class PostWorkflow(BaseModel):
 
 
 class DiagnosticModel(BaseModel):
-    orchestrator: str
     nodes: list[BaseNodeModel | BaseURModel]
