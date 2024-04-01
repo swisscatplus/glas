@@ -6,7 +6,7 @@ from loguru import logger
 from uvicorn import Config, Server
 
 from src.orchestrator.core import OrchestratorState, WorkflowOrchestrator
-from src.orchestrator.task import Task, TaskModel
+from src.orchestrator.models import StatisticsModel, TaskModel
 from src.scheduler.models import *
 
 
@@ -54,9 +54,15 @@ class RobotScheduler:
             methods=["GET"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
-                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online."},
-                status.HTTP_410_GONE: {"description": "Orchestrator is offline."},
+                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online"},
+                status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
             },
+        )
+        self.api_monitoring.add_api_route(
+            "/statistics",
+            self.get_statistics,
+            methods=["GET"],
+            responses={status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}},
         )
         self.api_monitoring.add_api_route(
             "/running",
@@ -117,6 +123,10 @@ class RobotScheduler:
         """Get some information about the state of the scheduler and orchestrator."""
         nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
         return DiagnosticModel(nodes=nodes)
+
+    def get_statistics(self):
+        """Get the statistics about the whole system."""
+        return self.orchestrator.get_statistics()
 
     def ochestrator_status(self, response: Response):
         """Get the status of the orchestrator"""
