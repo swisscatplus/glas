@@ -62,8 +62,11 @@ class RobotScheduler:
             "/statistics",
             self.get_statistics,
             methods=["GET"],
-            responses={status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}},
+            responses={
+                status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}
+            },
         )
+        self.api_monitoring.add_api_route("/statistics/node/{node_id}", self.get_node_statistics, methods=["GET"])
         self.api_monitoring.add_api_route(
             "/running",
             self.get_running,
@@ -127,6 +130,10 @@ class RobotScheduler:
     def get_statistics(self):
         """Get the statistics about the whole system."""
         return self.orchestrator.get_statistics()
+
+    def get_node_statistics(self, node_id: str):
+        """Get the statistics for a specific node"""
+        return self.orchestrator.get_node_statistic(node_id)
 
     def ochestrator_status(self, response: Response):
         """Get the status of the orchestrator"""
