@@ -6,7 +6,7 @@ from loguru import logger
 from uvicorn import Config, Server
 
 from src.orchestrator.core import OrchestratorState, WorkflowOrchestrator
-from src.orchestrator.models import StatisticsModel, TaskModel
+from src.orchestrator.models import StatisticsModel, TaskModel, TasksStatistics
 from src.scheduler.models import *
 
 
@@ -65,6 +65,12 @@ class RobotScheduler:
             responses={
                 status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}
             },
+        )
+        self.api_monitoring.add_api_route(
+            "/statistics/tasks",
+            self.get_executed_tasks_satistics,
+            methods=["GET"],
+            responses={status.HTTP_200_OK: {"model": TasksStatistics}},
         )
         self.api_monitoring.add_api_route("/statistics/node/{node_id}", self.get_node_statistics, methods=["GET"])
         self.api_monitoring.add_api_route(
@@ -132,8 +138,15 @@ class RobotScheduler:
         return self.orchestrator.get_statistics()
 
     def get_node_statistics(self, node_id: str):
-        """Get the statistics for a specific node"""
+        """Get the statistics for a specific node."""
         return self.orchestrator.get_node_statistic(node_id)
+
+    def get_executed_tasks_satistics(self):
+        """Get the current and last week executed tasks, and the percentage difference between them."""
+        current_week = self.orchestrator.get_current_week_tasks()
+        last_week = self.orchestrator.get_last_week_tasks()
+        difference = self.orchestrator.get_tasks_difference()
+        return TasksStatistics(current_week=current_week, last_week=last_week, difference=difference)
 
     def ochestrator_status(self, response: Response):
         """Get the status of the orchestrator"""
