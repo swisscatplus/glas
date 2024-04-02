@@ -67,6 +67,12 @@ class RobotScheduler:
             },
         )
         self.api_monitoring.add_api_route(
+            "/workflows",
+            self.get_wokflows,
+            methods=["GET"],
+            responses={status.HTTP_200_OK: {"model": WorkflowsModel}},
+        )
+        self.api_monitoring.add_api_route(
             "/statistics/tasks",
             self.get_executed_tasks_satistics,
             methods=["GET"],
@@ -132,6 +138,16 @@ class RobotScheduler:
         """Get some information about the state of the scheduler and orchestrator."""
         nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
         return DiagnosticModel(nodes=nodes)
+
+    def get_wokflows(self):
+        """Get all the workflows with their steps."""
+        workflows = self.orchestrator.get_all_workflows()
+        steps = {}
+
+        for workflow in workflows:
+            steps[workflow.name] = self.orchestrator.get_steps(workflow.id)
+
+        return steps
 
     def get_statistics(self):
         """Get the statistics about the whole system."""

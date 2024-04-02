@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from src.nodes.models import BaseNodeModel, BaseURModel, BaseEMModel
 
@@ -9,3 +9,12 @@ class PostWorkflow(BaseModel):
 
 class DiagnosticModel(BaseModel):
     nodes: list[BaseNodeModel | BaseURModel | BaseEMModel]
+
+
+class StepModel(BaseModel):
+    name: str
+    postion: int
+
+
+class WorkflowsModel(RootModel):
+    root: dict[str, list[StepModel]]
