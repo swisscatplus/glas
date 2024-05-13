@@ -12,9 +12,9 @@ from src.scheduler.models import *
 
 class RobotScheduler:
     def __init__(
-        self,
-        orchestrator: WorkflowOrchestrator,
-        port: int,
+            self,
+            orchestrator: WorkflowOrchestrator,
+            port: int,
     ) -> None:
         self.logger = logger.bind(app="Scheduler")
 
@@ -40,17 +40,17 @@ class RobotScheduler:
         self.init_monitoring_routes()
 
     def init_monitoring_routes(self) -> None:
-        self.api_monitoring = APIRouter(prefix="/monitoring", tags=["Robot Scheduler Monitoring"])
+        api_monitoring = APIRouter(prefix="/monitoring", tags=["Robot Scheduler Monitoring"])
 
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route(
             "/diagnostics",
             self.diagnostics,
             methods=["GET"],
             responses={status.HTTP_200_OK: {"model": DiagnosticModel}},
         )
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route(
             "/orchestrator-status",
-            self.ochestrator_status,
+            self.orchestrator_status,
             methods=["GET"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
@@ -58,7 +58,7 @@ class RobotScheduler:
                 status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
             },
         )
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route(
             "/statistics",
             self.get_statistics,
             methods=["GET"],
@@ -66,33 +66,33 @@ class RobotScheduler:
                 status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}
             },
         )
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route(
             "/workflows",
-            self.get_wokflows,
+            self.get_workflows,
             methods=["GET"],
             responses={status.HTTP_200_OK: {"model": WorkflowsModel}},
         )
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route(
             "/statistics/tasks",
-            self.get_executed_tasks_satistics,
+            self.get_executed_tasks_statistics,
             methods=["GET"],
             responses={status.HTTP_200_OK: {"model": TasksStatistics}},
         )
-        self.api_monitoring.add_api_route("/statistics/node/{node_id}", self.get_node_statistics, methods=["GET"])
-        self.api_monitoring.add_api_route(
+        api_monitoring.add_api_route("/statistics/node/{node_id}", self.get_node_statistics, methods=["GET"])
+        api_monitoring.add_api_route(
             "/running",
             self.get_running,
             methods=["GET"],
             responses={status.HTTP_200_OK: {"model": list[TaskModel]}},
         )
 
-        self.api.include_router(self.api_monitoring)
+        self.api.include_router(api_monitoring)
 
     def init_admin_routes(self) -> None:
         """TODO Those routes NEED to be account/key/password protected !!"""
-        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
+        admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
 
-        self.admin_router.add_api_route(
+        admin_router.add_api_route(
             "/start",
             self.start_orchestrator,
             methods=["POST"],
@@ -102,7 +102,7 @@ class RobotScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already running"},
             },
         )
-        self.admin_router.add_api_route(
+        admin_router.add_api_route(
             "/stop",
             self.stop,
             methods=["POST"],
@@ -112,7 +112,7 @@ class RobotScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already stopped."},
             },
         )
-        self.admin_router.add_api_route(
+        admin_router.add_api_route(
             "/full-stop",
             self.full_stop,
             methods=["POST"],
@@ -120,14 +120,14 @@ class RobotScheduler:
             responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
         )
 
-        self.api.include_router(self.admin_router)
+        self.api.include_router(admin_router)
 
     def init_lab_routes(self) -> None:
-        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
+        lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
 
-        self.lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
+        lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
 
-        self.api.include_router(self.lab_router)
+        self.api.include_router(lab_router)
 
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
@@ -139,7 +139,7 @@ class RobotScheduler:
         nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
         return DiagnosticModel(nodes=nodes)
 
-    def get_wokflows(self):
+    def get_workflows(self):
         """Get all the workflows with their steps."""
         workflows = self.orchestrator.get_all_workflows()
         steps = {}
@@ -157,14 +157,14 @@ class RobotScheduler:
         """Get the statistics for a specific node."""
         return self.orchestrator.get_node_statistic(node_id)
 
-    def get_executed_tasks_satistics(self):
+    def get_executed_tasks_statistics(self):
         """Get the current and last week executed tasks, and the percentage difference between them."""
         current_week = self.orchestrator.get_current_week_tasks()
         last_week = self.orchestrator.get_last_week_tasks()
         difference = self.orchestrator.get_tasks_difference()
         return TasksStatistics(current_week=current_week, last_week=last_week, difference=difference)
 
-    def ochestrator_status(self, response: Response):
+    def orchestrator_status(self, response: Response):
         """Get the status of the orchestrator"""
         if self.orchestrator.get_state() == OrchestratorState.RUNNING:
             response.status_code = status.HTTP_204_NO_CONTENT

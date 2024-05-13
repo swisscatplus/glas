@@ -4,7 +4,7 @@ import argparse
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="RobotScheduler",
-        description="Scheduler to automate the lab's worlkflows",
+        description="Scheduler to automate the lab's workflows",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 

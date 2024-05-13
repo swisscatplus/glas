@@ -13,7 +13,7 @@ class DiagnosticModel(BaseModel):
 
 class StepModel(BaseModel):
     name: str
-    postion: int
+    position: int
 
 
 class WorkflowsModel(RootModel):
