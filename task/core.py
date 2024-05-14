@@ -6,10 +6,10 @@ from typing import Callable, Self
 
 from loguru import logger
 
-from scheduler.database import DatabaseConnector, DBTask
-from scheduler.task.enums import TaskState
-from scheduler.task.models import TaskModel
-from scheduler.workflow.core import Workflow
+from task_scheduler.database import DatabaseConnector, DBTask
+from task_scheduler.task.enums import TaskState
+from task_scheduler.task.models import TaskModel
+from task_scheduler.workflow.core import Workflow
 
 
 class Task:

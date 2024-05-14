@@ -1,7 +1,7 @@
 from typing import Any
 
 from nodes.base import BaseNode
-from scheduler.workflow.models import WorkflowModel
+from task_scheduler.workflow.models import WorkflowModel
 
 
 class Workflow:

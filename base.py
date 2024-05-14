@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from uvicorn import Config, Server
 
-from scheduler.orchestrator.abc import IOrchestrator
-from scheduler.models import *
+from task_scheduler.orchestrator.abc import IOrchestrator
+from task_scheduler.models import *
 
 
 class BaseScheduler:

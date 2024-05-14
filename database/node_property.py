@@ -1,11 +1,11 @@
-from scheduler.database.connector import DatabaseConnector as DBC
+from task_scheduler.database.connector import DatabaseConnector
 
 
 class DBNodeProperty:
     __tablename__ = "node_properties"
 
     @classmethod
-    def exists(cls, db: DBC, node_id: str, name: str, value: str) -> bool:
+    def exists(cls, db: DatabaseConnector, node_id: str, name: str, value: str) -> bool:
         sql = f"SELECT id FROM {cls.__tablename__} WHERE node_id=%s AND name=%s AND value=%s"
         data = (node_id, name, value)
         db.cursor.execute(sql, data)
@@ -13,7 +13,7 @@ class DBNodeProperty:
         return db.cursor.fetchone() is not None
 
     @classmethod
-    def insert_property(cls, db: DBC, node_id: str, name: str, value: str):
+    def insert_property(cls, db: DatabaseConnector, node_id: str, name: str, value: str):
         if cls.exists(db, node_id, name, value):
             return
         

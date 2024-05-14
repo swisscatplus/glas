@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from scheduler.orchestrator.enums import OrchestratorState
-from scheduler.workflow.core import Workflow
+from task_scheduler.orchestrator.enums import OrchestratorState
+from task_scheduler.workflow.core import Workflow
 
 
 class IOrchestrator(ABC):

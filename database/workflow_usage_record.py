@@ -1,11 +1,11 @@
-from scheduler.database.connector import DatabaseConnector as DBC
+from task_scheduler.database.connector import DatabaseConnector
 
 
 class DBWorkflowUsageRecord:
     __tablename__ = "workflow_usage_records"
 
     @classmethod
-    def get_statistics(cls, db: DBC):
+    def get_statistics(cls, db: DatabaseConnector):
         sql = """
         SELECT 
             w.id AS id,
@@ -23,7 +23,7 @@ class DBWorkflowUsageRecord:
         return db.cursor.fetchall()
 
     @classmethod
-    def insert(cls, db: DBC, workflow_id: int) -> None:
+    def insert(cls, db: DatabaseConnector, workflow_id: int) -> None:
         sql = f"INSERT INTO {cls.__tablename__}(workflow_id) VALUES (%s)"
         data = (workflow_id,)
         db.cursor.execute(sql, data)

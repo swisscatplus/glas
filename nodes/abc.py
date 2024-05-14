@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 
 from typing import Self
 
-from scheduler.database import DatabaseConnector
-from scheduler.nodes.models import BaseNodeModel
+from task_scheduler.database import DatabaseConnector
+from task_scheduler.nodes.models import BaseNodeModel
 
 
 class ABCBaseNode(ABC):

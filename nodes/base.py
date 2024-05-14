@@ -2,11 +2,11 @@ import threading
 import time
 from typing import Self
 
-from scheduler.database import DatabaseConnector, DBNodeCallRecord
-from scheduler.nodes.models import BaseNodeModel
+from task_scheduler.database import DatabaseConnector, DBNodeCallRecord
+from task_scheduler.nodes.models import BaseNodeModel
 from utils.data_collection import insert_data_sample
-from scheduler.nodes.abc import ABCBaseNode
-from scheduler.nodes.enums import NodeState
+from task_scheduler.nodes.abc import ABCBaseNode
+from task_scheduler.nodes.enums import NodeState
 
 
 class BaseNode(ABCBaseNode):

@@ -1,8 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
 
-from scheduler.workflow.models import WorkflowModel
+from task_scheduler.workflow.models import WorkflowModel
 
 
 class TaskModel(BaseModel):

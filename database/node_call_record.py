@@ -1,12 +1,12 @@
-from scheduler.database.connector import DatabaseConnector as DBC
-from scheduler.database.models import DBNodeCallRecordModel
+from task_scheduler.database.connector import DatabaseConnector
+from task_scheduler.database.models import DBNodeCallRecordModel
 
 
 class DBNodeCallRecord:
     __tablename__ = "node_call_records"
 
     @classmethod
-    def get_for_node(cls, db: DBC, node_id: str):
+    def get_for_node(cls, db: DatabaseConnector, node_id: str):
         sql = f"SELECT * FROM {cls.__tablename__} WHERE node_id=%s AND timestamp >= DATE_SUB(NOW(), INTERVAL 8 HOUR)"
         data = (node_id,)
         db.cursor.execute(sql, data)
@@ -14,7 +14,7 @@ class DBNodeCallRecord:
         return db.cursor.fetchall()
 
     @classmethod
-    def get_statistics(cls, db: DBC) -> list[DBNodeCallRecordModel]:
+    def get_statistics(cls, db: DatabaseConnector) -> list[DBNodeCallRecordModel]:
         sql = """
         SELECT 
             n.id AS id,
@@ -39,7 +39,7 @@ class DBNodeCallRecord:
         return db.cursor.fetchall()
 
     @classmethod
-    def insert(cls, db: DBC, node_id: str, endpoint: str, duration: float, outcome: str) -> None:
+    def insert(cls, db: DatabaseConnector, node_id: str, endpoint: str, duration: float, outcome: str) -> None:
         sql = f"INSERT INTO {cls.__tablename__}(node_id, endpoint, duration, outcome) VALUES (%s, %s, %s, %s)"
         data = (node_id, endpoint, duration, outcome)
         db.cursor.execute(sql, data)

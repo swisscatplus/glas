@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from scheduler.nodes.models import BaseNodeModel
+from task_scheduler.nodes.models import BaseNodeModel
 
 
 class WorkflowModel(BaseModel):
