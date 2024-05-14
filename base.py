@@ -36,7 +36,7 @@ class BaseScheduler:
         self.init_admin_routes()
 
     def init_admin_routes(self) -> None:
-        """TODO Those routes NEED to be account/key/password protected !!"""
+        """TODO Those routes NEED to be account/key/password protected !"""
         admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
 
         admin_router.add_api_route(
