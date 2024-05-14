@@ -105,7 +105,7 @@ class BaseScheduler:
 
     def get_running(self):
         """Retrieve all the running task."""
-        running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
+        running_workflows = [task.serialize() for _, task in self.orchestrator.get_running_tasks()]
         return running_workflows
 
     def lab_add_workflow(self, data: PostWorkflow, response: Response):
@@ -115,7 +115,6 @@ class BaseScheduler:
             response.status_code = status.HTTP_418_IM_A_TEAPOT
             return
 
-        for w in self.orchestrator.workflows:
-            # if w.name == data.name:
-            self.orchestrator.add_task(w)
+        wf = self.orchestrator.get_workflow_by_name(data.name)
+        self.orchestrator.add_task(wf)
         return data
