@@ -5,12 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from uvicorn import Config, Server
 
-from task_scheduler.orchestrator.abc import IOrchestrator
+from task_scheduler.orchestrator.base import BaseOrchestrator
 from task_scheduler.models import *
 
 
 class BaseScheduler:
-    def __init__(self, orchestrator: IOrchestrator, port: int) -> None:
+    def __init__(self, orchestrator: BaseOrchestrator, port: int) -> None:
         self.logger = None
         self.api = FastAPI()
         self.api.add_middleware(
