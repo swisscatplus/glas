@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from task_scheduler.database.connector import DatabaseConnector
-from task_scheduler.database.models import TasksStatisticsEntry
-from task_scheduler.orchestrator.models import TaskDifference
+from .connector import DatabaseConnector
+from .models import TasksStatisticsEntry
+from ..orchestrator.models import TaskDifference
 
 
 class DBTask:

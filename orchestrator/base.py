@@ -3,12 +3,11 @@ from abc import ABC, abstractmethod
 
 from loguru import logger
 
-from task_scheduler.database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
-from task_scheduler.nodes.base import BaseNode
-from task_scheduler.orchestrator.enums import OrchestratorState
-from task_scheduler.task.core import Task
-from task_scheduler.workflow.core import Workflow
-from utils.data_collection import init_collection
+from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
+from ..nodes.base import BaseNode
+from ..orchestrator.enums import OrchestratorState
+from ..task.core import Task
+from ..workflow.core import Workflow
 
 
 class BaseOrchestrator(ABC):
@@ -81,8 +80,6 @@ class BaseOrchestrator(ABC):
 
         self._load_nodes(self.nodes_path)
         self._load_workflows(self.workflows_path)
-
-        init_collection()
 
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")

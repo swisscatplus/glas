@@ -1,4 +1,4 @@
-from task_scheduler.database.connector import DatabaseConnector
+from .connector import DatabaseConnector
 
 
 class DBStep:

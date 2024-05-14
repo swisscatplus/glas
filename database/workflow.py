@@ -1,5 +1,5 @@
-from task_scheduler.database.connector import DatabaseConnector
-from task_scheduler.database.models import DBWorkflowModel
+from .connector import DatabaseConnector
+from .models import DBWorkflowModel
 
 
 class DBWorkflow:

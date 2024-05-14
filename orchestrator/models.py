@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from task_scheduler.database.models import TasksStatisticsEntry
+from ..database.models import TasksStatisticsEntry
 
 
 class TaskDifference(BaseModel):

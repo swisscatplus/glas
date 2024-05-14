@@ -1,5 +1,5 @@
-from task_scheduler.database.connector import DatabaseConnector
-from task_scheduler.database.models import DBNodeModel
+from .connector import DatabaseConnector
+from .models import DBNodeModel
 
 
 class DBNode:

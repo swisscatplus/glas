@@ -2,11 +2,10 @@ import threading
 import time
 from typing import Self
 
-from task_scheduler.database import DatabaseConnector, DBNodeCallRecord
-from task_scheduler.nodes.models import BaseNodeModel
-from utils.data_collection import insert_data_sample
-from task_scheduler.nodes.abc import ABCBaseNode
-from task_scheduler.nodes.enums import NodeState
+from ..database import DatabaseConnector, DBNodeCallRecord
+from ..nodes.models import BaseNodeModel
+from ..nodes.abc import ABCBaseNode
+from ..nodes.enums import NodeState
 
 
 class BaseNode(ABCBaseNode):
@@ -39,9 +38,6 @@ class BaseNode(ABCBaseNode):
 
             DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
-
-            if save:
-                insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
             return 0
 
