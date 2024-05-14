@@ -116,5 +116,10 @@ class BaseScheduler:
             return
 
         wf = self.orchestrator.get_workflow_by_name(data.name)
+
+        # TODO change returned value to have error message
+        if wf is None:
+            return data
+
         self.orchestrator.add_task(wf)
         return data

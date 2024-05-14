@@ -58,8 +58,10 @@ class BaseOrchestrator(ABC):
     def get_running_tasks(self) -> list[tuple[threading.Thread, Task]]:
         return self.running_tasks
 
-    def get_workflow_by_name(self, name: str) -> Workflow:
-        return list(filter(lambda w: w.name == name, self.get_workflows()))[0]
+    def get_workflow_by_name(self, name: str) -> Workflow | None:
+        found = list(filter(lambda w: w.name == name, self.get_workflows()))
+
+        return found[0] if len(found) == 1 else None
 
     def get_workflows(self) -> list[Workflow]:
         return self.workflows
