@@ -1,6 +1,6 @@
 from pydantic import BaseModel, RootModel
 
-from src.nodes.models import BaseNodeModel, BaseURModel, BaseEMModel
+from nodes.models import BaseNodeModel, BaseURModel, BaseEMModel
 
 
 class PostWorkflow(BaseModel):

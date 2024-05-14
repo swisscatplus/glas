@@ -5,19 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from uvicorn import Config, Server
 
-from src.orchestrator.core import OrchestratorState, WorkflowOrchestrator
-from src.orchestrator.models import StatisticsModel, TaskModel, TasksStatistics
-from src.scheduler.models import *
+from scheduler.orchestrator.abc import IOrchestrator
+from scheduler.models import *
 
 
-class RobotScheduler:
-    def __init__(
-            self,
-            orchestrator: WorkflowOrchestrator,
-            port: int,
-    ) -> None:
-        self.logger = logger.bind(app="Scheduler")
-
+class BaseScheduler:
+    def __init__(self, orchestrator: IOrchestrator, port: int) -> None:
+        self.logger = None
         self.api = FastAPI()
         self.api.add_middleware(
             CORSMiddleware,
@@ -34,59 +28,12 @@ class RobotScheduler:
 
         self.init_routes()
 
+    def bind_logger_name(self, logger_name: str):
+        self.logger = logger.bind(app=logger_name)
+
     def init_routes(self) -> None:
         self.init_lab_routes()
         self.init_admin_routes()
-        self.init_monitoring_routes()
-
-    def init_monitoring_routes(self) -> None:
-        api_monitoring = APIRouter(prefix="/monitoring", tags=["Robot Scheduler Monitoring"])
-
-        api_monitoring.add_api_route(
-            "/diagnostics",
-            self.diagnostics,
-            methods=["GET"],
-            responses={status.HTTP_200_OK: {"model": DiagnosticModel}},
-        )
-        api_monitoring.add_api_route(
-            "/orchestrator-status",
-            self.orchestrator_status,
-            methods=["GET"],
-            status_code=status.HTTP_204_NO_CONTENT,
-            responses={
-                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online"},
-                status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
-            },
-        )
-        api_monitoring.add_api_route(
-            "/statistics",
-            self.get_statistics,
-            methods=["GET"],
-            responses={
-                status.HTTP_200_OK: {"description": "Statistics about the whole system", "model": StatisticsModel}
-            },
-        )
-        api_monitoring.add_api_route(
-            "/workflows",
-            self.get_workflows,
-            methods=["GET"],
-            responses={status.HTTP_200_OK: {"model": WorkflowsModel}},
-        )
-        api_monitoring.add_api_route(
-            "/statistics/tasks",
-            self.get_executed_tasks_statistics,
-            methods=["GET"],
-            responses={status.HTTP_200_OK: {"model": TasksStatistics}},
-        )
-        api_monitoring.add_api_route("/statistics/node/{node_id}", self.get_node_statistics, methods=["GET"])
-        api_monitoring.add_api_route(
-            "/running",
-            self.get_running,
-            methods=["GET"],
-            responses={status.HTTP_200_OK: {"model": list[TaskModel]}},
-        )
-
-        self.api.include_router(api_monitoring)
 
     def init_admin_routes(self) -> None:
         """TODO Those routes NEED to be account/key/password protected !!"""
@@ -134,44 +81,6 @@ class RobotScheduler:
         self.orchestrator.start()
         self.server.run()  # need to run as last
 
-    def diagnostics(self):
-        """Get some information about the state of the scheduler and orchestrator."""
-        nodes = [node.serialize() for node in self.orchestrator.get_all_nodes()]
-        return DiagnosticModel(nodes=nodes)
-
-    def get_workflows(self):
-        """Get all the workflows with their steps."""
-        workflows = self.orchestrator.get_all_workflows()
-        steps = {}
-
-        for workflow in workflows:
-            steps[workflow.name] = self.orchestrator.get_steps(workflow.id)
-
-        return steps
-
-    def get_statistics(self):
-        """Get the statistics about the whole system."""
-        return self.orchestrator.get_statistics()
-
-    def get_node_statistics(self, node_id: str):
-        """Get the statistics for a specific node."""
-        return self.orchestrator.get_node_statistic(node_id)
-
-    def get_executed_tasks_statistics(self):
-        """Get the current and last week executed tasks, and the percentage difference between them."""
-        current_week = self.orchestrator.get_current_week_tasks()
-        last_week = self.orchestrator.get_last_week_tasks()
-        difference = self.orchestrator.get_tasks_difference()
-        return TasksStatistics(current_week=current_week, last_week=last_week, difference=difference)
-
-    def orchestrator_status(self, response: Response):
-        """Get the status of the orchestrator"""
-        if self.orchestrator.get_state() == OrchestratorState.RUNNING:
-            response.status_code = status.HTTP_204_NO_CONTENT
-        else:
-            response.status_code = status.HTTP_410_GONE
-        return
-
     def stop(self, response: Response):
         """Stop the orchestrator."""
         response.status_code = status.HTTP_204_NO_CONTENT
@@ -195,7 +104,7 @@ class RobotScheduler:
         return
 
     def get_running(self):
-        """Retrieve all the running tasks."""
+        """Retrieve all the running task."""
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return running_workflows
 
