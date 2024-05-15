@@ -22,6 +22,7 @@
 # Table of Contents
 - [Table of Contents](#table-of-contents)
 - [How to Use](#how-to-use)
+- [How to Execute](#how-to-execute)
 
 # How to Use
 
