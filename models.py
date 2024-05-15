@@ -1,6 +1,6 @@
 from pydantic import BaseModel, RootModel
 
-from nodes.models import BaseNodeModel, BaseURModel, BaseEMModel
+from .nodes.models import BaseNodeModel
 
 
 class PostWorkflow(BaseModel):
@@ -8,7 +8,7 @@ class PostWorkflow(BaseModel):
 
 
 class DiagnosticModel(BaseModel):
-    nodes: list[BaseNodeModel | BaseURModel | BaseEMModel]
+    nodes: list[BaseNodeModel]
 
 
 class StepModel(BaseModel):
