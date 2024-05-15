@@ -1,6 +1,6 @@
 from typing import Any
 
-from nodes.base import BaseNode
+from ..nodes.base import BaseNode
 from .models import WorkflowModel
 
 

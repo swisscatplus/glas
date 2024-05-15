@@ -1,24 +1,86 @@
-# Task Scheduler
+<a name="readme-top"></a>
+<br />
+<div align="center">
+  <a href="https://github.com/swisscatplus/task-scheduler">
+    <img src="https://images.squarespace-cdn.com/content/v1/6012a0a1f4c67c587a8eff67/d7731755-2fa3-4548-bf1e-5a25182d67ae/Combined+Logo+CAT-ETH-EPFL+%282%29.png?format=1500w" alt="Logo" height="80">
+  </a>
+
+  <h1 align="center">Task Scheduler - Common Task Handling System</h1>
+
+  <p align="center">
+    In this repository, you will find the code common code base of most of the schedulers at SwissCAT+.
+    <br />
+    <a href="https://github.com/swisscatplus/task-scheduler"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/swisscatplus/task-scheduler/issues">Report Mistake</a>
+    ·
+    <a href="https://github.com/swisscatplus/task-scheduler/issues">Request Feature</a>
+  </p>
+</div>
+
+# Table of Contents
+- [Table of Contents](#table-of-contents)
+- [How to Use](#how-to-use)
+
+# How to Use
 
 > [!WARNING]
 > Do not use as a standalone, only as a project submodule !
 
-# How To
+First and foremost one will need to create the project that will use the Task Scheduler with the following structure:
+
 ```
-cd <your-project>
-git submodule add git@github.com:swisscatplus/task-scheduler.git <path>/task_scheduler
+my-project/
+├─ src/
+│  ├─ my_other_modules/
+│  │  └─ __init__.py
+│  │
+│  ├─ orchestrator/
+│  │  ├─ __init__.py
+│  │  └─ core.py
+│  │
+│  ├─ scheduler/
+│  │  ├─ __init__.py
+│  │  └─ core.py
+│  │
+│  ├─ __init__.py
+│  └─ run.py
+│
+├─ [tests/]
+│
+└─ exec.sh
 ```
 
-Once you have the submodule, you need to implement some things:
+Once you have such structure, cd into it and import the Task Scheduler submodule (make sure that the project is using git).
 
-1. Implement the `Orchestrator`'s abstract functions
-2. Extends if needed the scheduler
-3. Update the following script to you preferences and use it as the entrypoint
+```shell
+cd my-project
+git submodule add git@github.com:swisscatplus/task-scheduler.git src/task_scheduler
+```
+
+Once you have the submodule, you need to install the dependencies found in `requirements.txt` and proceed with the following:
+
+1. Implement the `BaseOrchestrator`'s abstract functions (`_load_nodes` and `_load_workflows`) in a concrete class
+2. Extends the `BaseScheduler`'s constructor as such:
+```python
+from orchestrator.core import MyOrchestrator
+from task_scheduler.base import BaseScheduler
+
+
+class MyScheduler(BaseScheduler):
+    def __init__(self, orchestrator: MyOrchestrator, port: int) -> None:
+        super().__init__(orchestrator, port)
+
+        self.orchestrator: MyOrchestrator = orchestrator
+        self.bind_logger_name("My Scheduler")
+```
+3. Add the following executions scripts
 
 ```python
 # run.py
-from <my_orchestrator_impl> import MyOrchestrator
-from <my_extended_scheduler> import MyScheduler
+from orchestrator.core import MyOrchestrator
+from scheduler.core import MyScheduler
 from task_scheduler.logger import setup_logger
 from task_scheduler.parser import parse_args
 
@@ -28,18 +90,17 @@ def main():
 
     setup_logger(args.logs)
 
-    wm = MyOrchestrator(
+    orchestrator = MyOrchestrator(
         args.path_to_nodes, args.path_to_workflows, args.verbose, args.emulate
     )
-    app = MyScheduler(wm, args.port)
+    app = MyScheduler(orchestrator, args.port)
+
     app.run()
 
 
 if __name__ == "__main__":
     main()
 ```
-
-And also, tu run the project, create the following script and run it instead of using the python command:
 
 ```shell
 # exec.sh
@@ -50,17 +111,11 @@ port=$1
 PYTHONPATH=./src python3 -m run -p "$port" -vel
 ```
 
-Finally, you should have a project structure like:
+# How to Execute
 
+```shell
+cd my-project
+chmod u+x exec.sh
+./exec.sh 3000
 ```
-project/
-├─ src/
-│  ├─ task_scheduler/
-│  │  ├─ __init__.py
-│  ├─ my_other_modules/
-│  │  ├─ __init__.py
-│  ├─ __init__.py
-│  ├─ run.py
-│  ├─ my_scheduler.py
-├─ exec.sh
-```
+
