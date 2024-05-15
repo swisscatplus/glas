@@ -62,7 +62,18 @@ git submodule add git@github.com:swisscatplus/task-scheduler.git src/task_schedu
 Once you have the submodule, you need to install the dependencies found in `requirements.txt` and proceed with the following:
 
 1. Implement the `BaseOrchestrator`'s abstract functions (`_load_nodes` and `_load_workflows`) in a concrete class
-2. Extends the `BaseScheduler`'s constructor as such:
+```python
+from task_scheduler.orchestrator.base import BaseOrchestrator
+
+
+class MyOrchestrator(BaseOrchestrator):
+    def _load_workflows(self, path: str) -> None:
+        pass
+
+    def _load_nodes(self, path: str) -> None:
+        pass
+```
+3. Extends the `BaseScheduler`'s constructor as such:
 ```python
 from orchestrator.core import MyOrchestrator
 from task_scheduler.base import BaseScheduler
