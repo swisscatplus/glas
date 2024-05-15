@@ -1,5 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from loguru import logger
 
@@ -36,6 +37,9 @@ class BaseOrchestrator(ABC):
         self.workflow_runner_mutex = threading.Lock()
         self.workflow_runner_threads: list[threading.Thread] = []
 
+        self._stop_callback: Callable[[], None] = lambda: None
+        self._start_callback: Callable[[], None] = lambda: None
+
     @abstractmethod
     def _load_workflows(self, path: str) -> None:
         ...
@@ -43,6 +47,12 @@ class BaseOrchestrator(ABC):
     @abstractmethod
     def _load_nodes(self, path: str) -> None:
         ...
+
+    def register_stop_callback(self, callback: Callable) -> None:
+        self._stop_callback = callback
+
+    def register_start_callback(self, callback: Callable) -> None:
+        self._start_callback = callback
 
     def _get_active_tasks(self) -> list[Task]:
         with self.running_mutex:
@@ -86,12 +96,16 @@ class BaseOrchestrator(ABC):
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")
 
+        self._start_callback()
+
         return 0
 
     def stop(self) -> int:
         if self.state == OrchestratorState.STOPPED:
             self.logger.info("already stopped")
             return 1
+
+        self._stop_callback()
 
         self.terminate_event.set()
         self.logger.warning("stopping...")
