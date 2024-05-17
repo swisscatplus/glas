@@ -8,7 +8,7 @@ class PostWorkflow(BaseModel):
 
 
 class DiagnosticModel(BaseModel):
-    nodes: list[BaseNodeModel]
+    nodes: list[object]
 
 
 class StepModel(BaseModel):
