@@ -45,6 +45,10 @@ my-project/
 │  │  ├─ __init__.py
 │  │  └─ core.py
 │  │
+│  ├─ task_scheduler/       <------- this is the submodule which will be imported
+│  │  ├─ ...
+│  │  └─ ...
+│  │
 │  ├─ __init__.py
 │  └─ run.py
 │
