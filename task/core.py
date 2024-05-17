@@ -109,12 +109,6 @@ class Task:
             self._log_error("node error:", ",".join(error_ids))
             return errno.EFAULT
 
-        # set started state only when first transportation node is reached
-        # the first and last step are always analysis machines
-        if step_id == 1:
-            self.set_active()
-            self._log_info("started")
-
         # stop the task execution when last node reached
         if step_id >= len(self.workflow.steps):
             return 0
@@ -140,6 +134,10 @@ class Task:
         self.set_pending()
 
         self.start_time = datetime.now()
+
+        self.set_active()
+        self._log_info("started")
+
         status = self._run()
         if status == 0:
             self.set_finished()
