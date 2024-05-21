@@ -2,7 +2,7 @@ import errno
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Self
+from typing import Callable, Self, Dict
 
 from loguru import logger
 
@@ -13,10 +13,11 @@ from ..workflow.core import Workflow
 
 
 class Task:
-    def __init__(self, workflow: Workflow, verbose: bool = False) -> None:
+    def __init__(self, workflow: Workflow, args: Dict[str, any] = None, verbose: bool = False) -> None:
         self.start_time = datetime.now()
         self.uuid = uuid.uuid4()
         self.workflow = workflow
+        self.args = args
         self.verbose = verbose
         self.state = TaskState.PENDING
         self.stop_flag = False
@@ -121,7 +122,7 @@ class Task:
 
         DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
 
-        status = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node)
+        status = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
         if status != 0:
             self.set_error()
             self._log_error(f"Node execution error: {status}")

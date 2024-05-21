@@ -1,10 +1,11 @@
 from pydantic import BaseModel, RootModel
-
+from typing import Dict, Optional
 from .nodes.models import BaseNodeModel
 
 
 class PostWorkflow(BaseModel):
     name: str
+    args: Optional[Dict] = None
 
 
 class DiagnosticModel(BaseModel):
