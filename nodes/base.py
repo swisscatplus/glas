@@ -2,10 +2,13 @@ import threading
 import time
 from typing import Self
 
+from loguru import logger
+
 from ..database import DatabaseConnector, DBNodeCallRecord
 from ..nodes.models import BaseNodeModel
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
+from ..logger import insert_data_sample
 
 
 class BaseNode(ABCBaseNode):
@@ -14,6 +17,7 @@ class BaseNode(ABCBaseNode):
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
+        self.logger = logger.bind(app=f"Node {name}")
 
     def __repr__(self) -> str:
         return self.name
@@ -38,6 +42,9 @@ class BaseNode(ABCBaseNode):
 
             DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
+
+            if save:
+                insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
             return 0
 
