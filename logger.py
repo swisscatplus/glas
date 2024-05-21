@@ -29,7 +29,7 @@ def _visualize():
     earliest = float('inf')
 
     for parts in data:
-        test_name = parts[1]
+        test_name = parts[0] + " " + parts[1]
         action = parts[2]
         start_time = float(parts[3])
         end_time = float(parts[4])
