@@ -72,7 +72,7 @@ class BaseScheduler:
     def init_lab_routes(self) -> None:
         lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
 
-        lab_router.add_api_route("/add", self.lab_add_workflow, methods=["POST"])
+        lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
 
         self.api.include_router(lab_router)
 
@@ -108,7 +108,7 @@ class BaseScheduler:
         running_workflows = [task.serialize() for _, task in self.orchestrator.get_running_tasks()]
         return running_workflows
 
-    def lab_add_workflow(self, data: PostWorkflow, response: Response):
+    def lab_add_task(self, data: PostWorkflow, response: Response):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
             self.logger.error("The orchestrator is not running")
@@ -120,6 +120,6 @@ class BaseScheduler:
         # TODO change returned value to have error message
         if wf is None:
             return data
-
-        self.orchestrator.add_task(wf)
+        
+        self.orchestrator.add_task(wf, data.args)
         return data

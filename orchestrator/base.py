@@ -1,6 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Dict
 
 from loguru import logger
 
@@ -126,13 +126,14 @@ class BaseOrchestrator(ABC):
 
         return 0
 
-    def add_task(self, workflow: Workflow) -> None:
+    def add_task(self, workflow: Workflow, args: Dict[str, any] = None) -> None:
         database = DatabaseConnector()
-        task = Task(workflow, self.verbose)
+        
+        task = Task(workflow, args, self.verbose)
 
         DBTask.insert(database, str(task.uuid), task.workflow.id)
         DBWorkflowUsageRecord.insert(database, workflow.id)
-
+        
         task_thread = threading.Thread(
             name=f"task:{task.workflow.name}", target=task.run, args=(self._remove_finished_task,)
         )
