@@ -20,6 +20,7 @@ class DBNodeCallRecord:
             n.id AS id,
             n.name AS name,
             endpoint,
+            message,
             COUNT(c.id) AS call_count,
             AVG(c.duration) AS average_execution_duration,
             MIN(c.duration) AS minimum_execution_duration,
@@ -39,7 +40,8 @@ class DBNodeCallRecord:
         return db.cursor.fetchall()
 
     @classmethod
-    def insert(cls, db: DatabaseConnector, node_id: str, endpoint: str, duration: float, outcome: str) -> None:
-        sql = f"INSERT INTO {cls.__tablename__}(node_id, endpoint, duration, outcome) VALUES (%s, %s, %s, %s)"
-        data = (node_id, endpoint, duration, outcome)
+    def insert(cls, db: DatabaseConnector, node_id: str, endpoint: str, message: str, duration: float,
+               outcome: str) -> None:
+        sql = f"INSERT INTO {cls.__tablename__}(node_id, endpoint, message, duration, outcome) VALUES (%s, %s, %s, %s, %s)"
+        data = (node_id, endpoint, message, duration, outcome)
         db.cursor.execute(sql, data)

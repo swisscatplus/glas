@@ -45,6 +45,7 @@ class DBNodeCallRecordModel(BaseModel):
     id: int
     node_id: str
     endpoint: str | None
+    message: str | None
     timestamp: datetime
     duration: float
     outcome: str

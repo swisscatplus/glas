@@ -31,24 +31,24 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.ERROR
 
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self, args: Dict[str, any] = None,
-                save: bool = True) -> int:
+                save: bool = True) -> tuple[int, str | None]:
         with self.mu:
             start = time.time()
             self.state = NodeState.IN_USE
 
-            status, endpoint = self._execute(src, dst, args)
+            status, message, endpoint = self._execute(src, dst, args)
             if status != 0:
                 self.error()
-                DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "error")
-                return status
+                DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
+                return status, message
 
-            DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "success")
+            DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
 
             if save:
                 insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
-            return 0
+            return 0, None
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
@@ -69,7 +69,7 @@ class BaseNode(ABCBaseNode):
         """
         return True
 
-    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[int, str | None]:
+    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[int, str | None, str | None]:
         """Executes a node for simulation purposes."""
         raise NotImplementedError
 

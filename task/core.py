@@ -77,11 +77,12 @@ class Task:
         self.state = TaskState.ERROR
 
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
-        unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps)
+        unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps[self.current_step:])
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
         return any(unreachable_ids), unreachable_ids
 
     def any_error_node(self) -> tuple[bool, list[str]]:
+        # TODO retrieve error message
         error_nodes = filter(lambda step: step.is_error(), self.workflow.steps)
         error_ids = list(map(lambda step: step.id, error_nodes))
         return any(error_ids), error_ids
@@ -122,10 +123,10 @@ class Task:
 
         DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
 
-        status = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
+        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
         if status != 0:
             self.set_error()
-            self._log_error(f"Node execution error: {status}")
+            self._log_error(f"Node execution error [{current_node.name}]: {status}: {message}")
             return errno.EFAULT
 
         return self._run(self.current_step + 1)

@@ -117,8 +117,8 @@ class BaseScheduler:
 
         wf = self.orchestrator.get_workflow_by_name(data.name)
 
-        # TODO change returned value to have error message
         if wf is None:
+            response.status_code = status.HTTP_404_NOT_FOUND
             return data
         
         self.orchestrator.add_task(wf, data.args)
