@@ -1,6 +1,6 @@
-from pydantic import BaseModel, RootModel
 from typing import Dict, Optional
-from .nodes.models import BaseNodeModel
+
+from pydantic import BaseModel, RootModel
 
 
 class PostWorkflow(BaseModel):
@@ -19,3 +19,7 @@ class StepModel(BaseModel):
 
 class WorkflowsModel(RootModel):
     root: dict[str, list[StepModel]]
+
+
+class RestartNodeModel(BaseModel):
+    node_id: str

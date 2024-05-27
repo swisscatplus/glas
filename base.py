@@ -26,6 +26,9 @@ class BaseScheduler:
 
         atexit.register(lambda: self.orchestrator.stop())
 
+        # The admin and lab router can be extended
+        self.admin_router: APIRouter = None
+        self.lab_router: APIRouter = None
         self.init_routes()
 
     def bind_logger_name(self, logger_name: str):
@@ -34,12 +37,31 @@ class BaseScheduler:
     def init_routes(self) -> None:
         self.init_lab_routes()
         self.init_admin_routes()
+        self._extends_lab_routes()
+        self._extends_admin_routes()
+
+        self.init_extra_routes()
+
+        self.include_routers()
+
+    def include_routers(self) -> None:
+        self.api.include_router(self.admin_router)
+        self.api.include_router(self.lab_router)
+
+    def init_extra_routes(self) -> None:
+        pass
+
+    def _extends_lab_routes(self) -> None:
+        pass
+
+    def _extends_admin_routes(self) -> None:
+        pass
 
     def init_admin_routes(self) -> None:
         """TODO Those routes NEED to be account/key/password protected !"""
-        admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
+        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
 
-        admin_router.add_api_route(
+        self.admin_router.add_api_route(
             "/start",
             self.start_orchestrator,
             methods=["POST"],
@@ -49,7 +71,7 @@ class BaseScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already running"},
             },
         )
-        admin_router.add_api_route(
+        self.admin_router.add_api_route(
             "/stop",
             self.stop,
             methods=["POST"],
@@ -59,7 +81,7 @@ class BaseScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already stopped."},
             },
         )
-        admin_router.add_api_route(
+        self.admin_router.add_api_route(
             "/full-stop",
             self.full_stop,
             methods=["POST"],
@@ -67,14 +89,10 @@ class BaseScheduler:
             responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
         )
 
-        self.api.include_router(admin_router)
-
     def init_lab_routes(self) -> None:
-        lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
+        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
 
-        lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
-
-        self.api.include_router(lab_router)
+        self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
 
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
