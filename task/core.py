@@ -77,15 +77,10 @@ class Task:
         self.state = TaskState.ERROR
 
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
+        # check the reachability of all future nodes
         unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps[self.current_step:])
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
         return any(unreachable_ids), unreachable_ids
-
-    def any_error_node(self) -> tuple[bool, list[str]]:
-        # TODO retrieve error message
-        error_nodes = filter(lambda step: step.is_error(), self.workflow.steps)
-        error_ids = list(map(lambda step: step.id, error_nodes))
-        return any(error_ids), error_ids
 
     def stop(self) -> None:
         self.stop_flag = True
@@ -97,19 +92,12 @@ class Task:
             self._log_error("interrupted at node", self.workflow.steps[self.current_step].id)
             return errno.EINTR
 
-        # check node reachability
+        # check node reachability, which include whether a node is in the error state
         unreachable_node, unreachable_ids = self.any_unreachable_node()
         if unreachable_node:
             self.set_error()
             self._log_error("unreachable steps:", ",".join(unreachable_ids))
             return errno.EHOSTUNREACH
-
-        # check node error
-        error_node, error_ids = self.any_error_node()
-        if error_node:
-            self.set_error()
-            self._log_error("node error:", ",".join(error_ids))
-            return errno.EFAULT
 
         # stop the task execution when last node reached
         if step_id >= len(self.workflow.steps):
