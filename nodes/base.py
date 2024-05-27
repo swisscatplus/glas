@@ -30,6 +30,9 @@ class BaseNode(ABCBaseNode):
     def error(self) -> None:
         self.state = NodeState.ERROR
 
+    def available(self) -> None:
+        self.state = NodeState.AVAILABLE
+
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
                 args: Dict[str, any] = None,
                 save: bool = True) -> tuple[int, str | None]:
@@ -51,6 +54,13 @@ class BaseNode(ABCBaseNode):
 
             return 0, None
 
+    def restart(self) -> int:
+        status = self._restart()
+
+        self.available()
+
+        return status
+
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
             id=self.id, name=self.name, status=self.state.name, online=self.is_reachable(), type="other"
@@ -70,6 +80,9 @@ class BaseNode(ABCBaseNode):
     def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[
         int, str | None, str | None]:
         """Executes a node for simulation purposes."""
+        raise NotImplementedError
+
+    def _restart(self) -> int:
         raise NotImplementedError
 
     def save_properties(self, db: DatabaseConnector) -> None:
