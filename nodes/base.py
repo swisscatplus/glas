@@ -1,6 +1,7 @@
 import threading
 import time
-from typing import Self
+import json
+from typing import Self, Dict
 
 from loguru import logger
 
@@ -17,7 +18,7 @@ class BaseNode(ABCBaseNode):
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
-        self.logger = logger.bind(app=f"Node {name}")
+        self.logger = logger.bind(app=f"Node {name}")   
 
     def __repr__(self) -> str:
         return self.name
@@ -28,13 +29,13 @@ class BaseNode(ABCBaseNode):
     def error(self) -> None:
         self.state = NodeState.ERROR
 
-    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
+    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self, args: Dict[str, any] = None,
                 save: bool = True) -> int:
         with self.mu:
             start = time.time()
             self.state = NodeState.IN_USE
 
-            status, endpoint = self._execute(src, dst)
+            status, endpoint = self._execute(src, dst, args)
             if status != 0:
                 self.error()
                 DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "error")
@@ -67,7 +68,7 @@ class BaseNode(ABCBaseNode):
         """
         return True
 
-    def _execute(self, src: "BaseNode", dst: "BaseNode") -> tuple[int, str | None]:
+    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[int, str | None]:
         """Executes a node for simulation purposes."""
         raise NotImplementedError
 
