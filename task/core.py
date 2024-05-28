@@ -2,7 +2,7 @@ import errno
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Self
+from typing import Callable, Self, Dict
 
 from loguru import logger
 
@@ -13,10 +13,11 @@ from ..workflow.core import Workflow
 
 
 class Task:
-    def __init__(self, workflow: Workflow, verbose: bool = False) -> None:
+    def __init__(self, workflow: Workflow, args: Dict[str, any] = None, verbose: bool = False) -> None:
         self.start_time = datetime.now()
         self.uuid = uuid.uuid4()
         self.workflow = workflow
+        self.args = args
         self.verbose = verbose
         self.state = TaskState.PENDING
         self.stop_flag = False
@@ -76,14 +77,10 @@ class Task:
         self.state = TaskState.ERROR
 
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
-        unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps)
+        # check the reachability of all future nodes
+        unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps[self.current_step:])
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
         return any(unreachable_ids), unreachable_ids
-
-    def any_error_node(self) -> tuple[bool, list[str]]:
-        error_nodes = filter(lambda step: step.is_error(), self.workflow.steps)
-        error_ids = list(map(lambda step: step.id, error_nodes))
-        return any(error_ids), error_ids
 
     def stop(self) -> None:
         self.stop_flag = True
@@ -95,19 +92,12 @@ class Task:
             self._log_error("interrupted at node", self.workflow.steps[self.current_step].id)
             return errno.EINTR
 
-        # check node reachability
+        # check node reachability, which include whether a node is in the error state
         unreachable_node, unreachable_ids = self.any_unreachable_node()
         if unreachable_node:
             self.set_error()
             self._log_error("unreachable steps:", ",".join(unreachable_ids))
             return errno.EHOSTUNREACH
-
-        # check node error
-        error_node, error_ids = self.any_error_node()
-        if error_node:
-            self.set_error()
-            self._log_error("node error:", ",".join(error_ids))
-            return errno.EFAULT
 
         # stop the task execution when last node reached
         if step_id >= len(self.workflow.steps):
@@ -121,10 +111,10 @@ class Task:
 
         DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
 
-        status = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node)
+        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
         if status != 0:
             self.set_error()
-            self._log_error(f"Node execution error: {status}")
+            self._log_error(f"Node execution error [{current_node.name}]: {status}: {message}")
             return errno.EFAULT
 
         return self._run(self.current_step + 1)

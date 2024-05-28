@@ -149,6 +149,7 @@ CREATE TABLE `node_call_records` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `node_id` varchar(255) NOT NULL,
   `endpoint` varchar(255) NULL,
+  `message` varchar(255) NULL,
   `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `duration` double,
   `outcome` varchar(50),

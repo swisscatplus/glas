@@ -124,10 +124,14 @@ if __name__ == "__main__":
 
 port=$1
 
-PYTHONPATH=./src python3 -m run -p "$port" -vel
+PYTHONPATH=./src python3 -m run -p "$port" -vl
 ```
 
 # How to Execute
+
+> For more information about the execution, please read the help menu `python3 -m run -h`
+
+## Linux
 
 ```shell
 cd my-project
@@ -135,3 +139,9 @@ chmod u+x exec.sh
 ./exec.sh 3000
 ```
 
+## Windows
+
+```shell
+cd Myproject\src
+python3 -m run -p 3000 -vl
+```

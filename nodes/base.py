@@ -13,7 +13,7 @@ from ..logger import insert_data_sample
 
 
 class BaseNode(ABCBaseNode):
-    def __init__(self, _id: str, name: str) -> None:
+    def __init__(self, _id: str, name: str, args: Dict[str, any] = None) -> None:
         self.id = _id
         self.name = name
         self.state = NodeState.AVAILABLE
@@ -29,47 +29,59 @@ class BaseNode(ABCBaseNode):
     def error(self) -> None:
         self.state = NodeState.ERROR
 
-    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self, args: Dict[str, any] = None,
-                save: bool = True) -> int:
+    def available(self) -> None:
+        self.state = NodeState.AVAILABLE
+
+    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
+                args: Dict[str, any] = None,
+                save: bool = True) -> tuple[int, str | None]:
         with self.mu:
             start = time.time()
             self.state = NodeState.IN_USE
 
-            status, endpoint = self._execute(src, dst, args)
+            status, message, endpoint = self._execute(src, dst, args)
             if status != 0:
                 self.error()
-                DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "error")
-                return status
+                DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
+                return status, message
 
-            DBNodeCallRecord.insert(db, self.id, endpoint, time.time() - start, "success")
+            DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
 
             if save:
                 insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
-            return 0
+            return 0, None
+
+    def restart(self) -> int:
+        status = self._restart()
+
+        self.available()
+
+        return status
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
             id=self.id, name=self.name, status=self.state.name, online=self.is_reachable(), type="other"
         )
 
-    def is_reachable(self) -> bool:
-        """Check the reachability of a node.
+    def _is_reachable(self) -> bool:
+        """
+        Needs to be implemented in a custom fashion for each node derived from this class.
 
-        Note: This method's implementation is based on current specifications for
-        simulation purposes only. It will need to raise a NotImplementedError when
-        using real hardware.
-
-        For now, it returns True for simulation purposes.
-
-        Future modifications:
-        - raise NotImplementedError
+        :return: Is the node reachable
         """
         return True
 
-    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[int, str | None]:
+    def is_reachable(self) -> bool:
+        return self._is_reachable() and not self.is_error()
+
+    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[
+        int, str | None, str | None]:
         """Executes a node for simulation purposes."""
+        raise NotImplementedError
+
+    def _restart(self) -> int:
         raise NotImplementedError
 
     def save_properties(self, db: DatabaseConnector) -> None:
