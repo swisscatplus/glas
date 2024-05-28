@@ -1,21 +1,32 @@
 Documentation
-1. Requirements
-2. Installation
-3. Task Scheduler
-3.1 scheduler
-3.2 orchestrator
-3.3 nodes
-3.4 workflows
-3.5 tasks
-3.6 database
-4. Extending the Task Scheduler
-4.1 [...]
-5. Running an extended Task Scheduler
-6. Real-time visualizer
+1. Introduction
+2. Requirements
+3. Installation
+4. Task Scheduler
+4.1 scheduler
+4.2 orchestrator
+4.3 nodes
+4.4 workflows
+4.5 tasks
+4.6 database
+5. Extending the Task Scheduler
+5.1 [...]
+6. Running an extended Task Scheduler
+7. Real-time visualizer
 
+# 1. Introduction
 
-# 1. Requirements
-## 1.1 Software
+> [!WARNING]
+> Do not use as a standalone, only as a project submodule !
+
+This project is a task scheduler with no implementation whatsoever. It is aimed to be used by any kind of project necessiting such scheduling. You can easily extend this project to fit you needs and it is highly modular.
+
+Once set up, adding a new node is simply adding a new class object and adding it in the configuration file. On startup, the configuration file is parsed and will instanciate everything for you.
+
+This document will help you to set up your first scheduler and configure it.
+
+# 2. Requirements
+## 2.1 Software
 The following must be installed before proceeding with the installation
 
 - [Python 3.11](https://www.python.org/downloads/)
@@ -23,17 +34,17 @@ The following must be installed before proceeding with the installation
 - [Docker compose](https://docs.docker.com/compose/install/)
 - [Git](https://git-scm.com/downloads)
 
-## 1.2 IDE
+## 2.2 IDE
 We recommend using vscode for this project, or PyCharm.
 
-## 1.3 Git
+## 2.3 Git
 A working Git environnement is necessary, and it must have access to the repository.
 
-# 2. Installation
+# 3. Installation
 
 This chapter explains how to create a repository and include the task scheduler inside. This step is crutial so read carefully.
 
-## 2.1 Creating a Git Repository for the project
+## 3.1 Creating a Git Repository for the project
 
 First, create an empty repository wherever you want.
 Clone it and inside, create folders and files following this example :
@@ -82,7 +93,7 @@ To update the submodule, run the command :
 git submodule update
 ```
 
-## 2.2 Preparing the Python environment
+## 3.2 Preparing the Python environment
 
 The Python executable on Linux-based OS is `python3`, but on Windows it is `py` or `python`. If you are on Windows, replace the executable accordingly on the following commands.
 
@@ -103,7 +114,7 @@ Install the required packages :
 (.venv) ../<my-project>$ pip install requirements.txt
 ```
 
-## 2.3 Preparing the Docker environment
+## 3.3 Preparing the Docker environment
 
 This project uses a dockerized database to store the state of all executions and configurations.
 
