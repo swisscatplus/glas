@@ -60,6 +60,9 @@ Clone it and inside, create folders and files following this example :
 │
 ├─ [tests/]       <------ optional
 │
+├─ compose.yaml
+├─ Dockerfile
+│
 └─ exec.sh
 ```
 
@@ -81,7 +84,7 @@ git submodule update
 
 ## 2.2 Preparing the Python environment
 
-The Python executable on Linux-based OS is `python3`, but on Windows it is `py`. If you are on Windows, replace the executable accordingly on the following commands.
+The Python executable on Linux-based OS is `python3`, but on Windows it is `py` or `python`. If you are on Windows, replace the executable accordingly on the following commands.
 
 For a better experience, create a Python virtual environment :
 
@@ -91,10 +94,53 @@ For a better experience, create a Python virtual environment :
 
 Run the venv :
 ```bash
-../<my-project>$ source .venv/bin/activate
+../<my-project>$ source .venv/bin/activate # Linux
+..\my-project> .venv\Scripts\activate.bat # Windows
 ```
 
 Install the required packages :
 ```bash
-(.venv) ../<my-project>$ pip install ./requirements.txt
+(.venv) ../<my-project>$ pip install requirements.txt
+```
+
+## 2.3 Preparing the Docker environment
+
+This project uses a dockerized database to store the state of all executions and configurations.
+
+In the file `<my-project>/Dockerfile`, write the following :
+```Dockerfile
+# Use an official MySQL image as a base image
+FROM mysql:latest
+
+# Set environment variables
+ENV MYSQL_ROOT_PASSWORD=Super2019
+ENV MYSQL_DATABASE=epfl
+ENV MYSQL_USER=epfl
+ENV MYSQL_PASSWORD=Super2019
+ENV TZ=Europe/Zurich
+
+# Copy the SQL file containing your specific database model to the container
+COPY ./src/task_scheduler/database/sql/schema.sql /docker-entrypoint-initdb.d/
+
+# Expose the MySQL default port
+EXPOSE 3306
+```
+
+in the file `<my-project>/compose.yaml`, write the following :
+```yaml
+services:
+  db:
+    build: .
+    ports:
+      - 3306:3306
+  phpmyadmin:
+    image: phpmyadmin
+    restart: on-failure
+    ports:
+      - 8080:80
+```
+
+To build and run the database container, run the following command :
+```shell
+docker compose up -d
 ```
