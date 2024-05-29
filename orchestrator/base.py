@@ -42,11 +42,11 @@ class BaseOrchestrator(ABC):
         self._start_callback: Callable[[], None] = lambda: None
 
     @abstractmethod
-    def _load_workflows(self, path: str) -> int:
+    def _load_workflows(self, path: str) -> OrchestratorErrorCodes:
         raise NotImplementedError
 
     @abstractmethod
-    def _load_nodes(self, path: str) -> int:
+    def _load_nodes(self, path: str) -> OrchestratorErrorCodes:
         raise NotImplementedError
 
     def register_stop_callback(self, callback: Callable) -> None:
@@ -91,13 +91,13 @@ class BaseOrchestrator(ABC):
         self.terminate_event.clear()
         self.logger.info("starting...")
 
-        if self._load_nodes(self.nodes_path) != 0:
+        if (err_code := self._load_nodes(self.nodes_path)) != OrchestratorErrorCodes.OK:
             self.state = OrchestratorState.ERROR
-            return OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION
+            return err_code
 
-        if self._load_workflows(self.workflows_path) != 0:
+        if (err_code := self._load_workflows(self.workflows_path)) != OrchestratorErrorCodes.OK:
             self.state = OrchestratorState.ERROR
-            return OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION
+            return err_code
 
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")

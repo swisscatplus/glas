@@ -5,6 +5,7 @@ class OrchestratorErrorCodes(Enum):
     OK = 0
     CANCELLED = 1
     COULD_NOT_FIND_CONFIGURATION = 2
+    COULD_NOT_PARSE_CONFIGURATION = 3
 
 
 class OrchestratorState(Enum):

@@ -92,8 +92,8 @@ class BaseScheduler:
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
 
-        if self.orchestrator.start() != OrchestratorErrorCodes.OK:
-            self.logger.critical(f"Failed to start orchestrator")
+        if (err_code := self.orchestrator.start()) != OrchestratorErrorCodes.OK:
+            self.logger.critical(f"Failed to start orchestrator: {err_code}")
             return
 
         self.server.run()  # need to run as last
