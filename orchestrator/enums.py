@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class OrchestratorErrorCodes(Enum):
+    OK = 0
+    CANCELLED = 1
+    COULD_NOT_FIND_CONFIGURATION = 2
+
+
 class OrchestratorState(Enum):
     STOPPED = 0
     RUNNING = 1
+    ERROR = 2

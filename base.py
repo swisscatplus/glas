@@ -7,6 +7,7 @@ from uvicorn import Config, Server
 
 from .orchestrator.base import BaseOrchestrator
 from .models import *
+from .orchestrator.enums import OrchestratorErrorCodes
 
 
 class BaseScheduler:
@@ -26,10 +27,12 @@ class BaseScheduler:
 
         atexit.register(lambda: self.orchestrator.stop())
 
-        # The admin and lab router can be extended
-        self.admin_router: APIRouter = None
-        self.lab_router: APIRouter = None
+        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
+        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
+
         self.init_routes()
+        self.init_extra_routes()
+        self.include_routers()
 
     def bind_logger_name(self, logger_name: str):
         self.logger = logger.bind(app=logger_name)
@@ -39,10 +42,6 @@ class BaseScheduler:
         self.init_admin_routes()
         self._extends_lab_routes()
         self._extends_admin_routes()
-
-        self.init_extra_routes()
-
-        self.include_routers()
 
     def include_routers(self) -> None:
         self.api.include_router(self.admin_router)
@@ -59,8 +58,6 @@ class BaseScheduler:
 
     def init_admin_routes(self) -> None:
         """TODO Those routes NEED to be account/key/password protected !"""
-        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
-
         self.admin_router.add_api_route(
             "/start",
             self.start_orchestrator,
@@ -90,13 +87,15 @@ class BaseScheduler:
         )
 
     def init_lab_routes(self) -> None:
-        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
-
         self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
 
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
-        self.orchestrator.start()
+
+        if self.orchestrator.start() != OrchestratorErrorCodes.OK:
+            self.logger.critical(f"Failed to start orchestrator")
+            return
+
         self.server.run()  # need to run as last
 
     def stop(self, response: Response):
@@ -117,7 +116,7 @@ class BaseScheduler:
         """Start the orchestrator"""
         response.status_code = status.HTTP_204_NO_CONTENT
 
-        if self.orchestrator.start() != 0:
+        if self.orchestrator.start() != OrchestratorErrorCodes.CANCELLED:
             response.status_code = status.HTTP_409_CONFLICT
         return
 

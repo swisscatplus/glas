@@ -4,6 +4,7 @@ from typing import Callable, Dict
 
 from loguru import logger
 
+from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
 from ..nodes.base import BaseNode
 from ..orchestrator.enums import OrchestratorState
@@ -41,12 +42,12 @@ class BaseOrchestrator(ABC):
         self._start_callback: Callable[[], None] = lambda: None
 
     @abstractmethod
-    def _load_workflows(self, path: str) -> None:
-        ...
+    def _load_workflows(self, path: str) -> int:
+        raise NotImplementedError
 
     @abstractmethod
-    def _load_nodes(self, path: str) -> None:
-        ...
+    def _load_nodes(self, path: str) -> int:
+        raise NotImplementedError
 
     def register_stop_callback(self, callback: Callable) -> None:
         self._stop_callback = callback
@@ -82,23 +83,28 @@ class BaseOrchestrator(ABC):
     def is_running(self) -> bool:
         return not self.terminate_event.is_set()
 
-    def start(self) -> int:
+    def start(self) -> OrchestratorErrorCodes:
         if self.state == OrchestratorState.RUNNING:
             self.logger.info("already running")
-            return 1
+            return OrchestratorErrorCodes.CANCELLED
 
         self.terminate_event.clear()
         self.logger.info("starting...")
 
-        self._load_nodes(self.nodes_path)
-        self._load_workflows(self.workflows_path)
+        if self._load_nodes(self.nodes_path) != 0:
+            self.state = OrchestratorState.ERROR
+            return OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION
+
+        if self._load_workflows(self.workflows_path) != 0:
+            self.state = OrchestratorState.ERROR
+            return OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION
 
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")
 
         self._start_callback()
 
-        return 0
+        return OrchestratorErrorCodes.OK
 
     def stop(self) -> int:
         if self.state == OrchestratorState.STOPPED:
