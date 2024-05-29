@@ -26,6 +26,9 @@ class BaseNode(ABCBaseNode):
     def is_error(self) -> bool:
         return self.state == NodeState.ERROR
 
+    def is_available(self) -> bool:
+        return self.state == NodeState.AVAILABLE
+
     def error(self) -> None:
         self.state = NodeState.ERROR
 
@@ -74,7 +77,7 @@ class BaseNode(ABCBaseNode):
         return True
 
     def is_reachable(self) -> bool:
-        return self._is_reachable() and not self.is_error()
+        return self._is_reachable() and self.is_available()
 
     def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[
         int, str | None, str | None]:
