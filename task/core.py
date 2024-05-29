@@ -22,12 +22,16 @@ class Task:
         self.state = TaskState.PENDING
         self.stop_flag = False
         self.current_step = -1
-        self.logger = logger.bind(app=f"Task {self.uuid} : {self.workflow.name}")
+        self.logger = logger.bind(app=f"Task {self.uuid}: {self.workflow.name}")
         self.db = DatabaseConnector()
 
     def _log_info(self, *values: object):
         if self.verbose:
             self.logger.info(" ".join(values))
+
+    def _log_debug(self, *values: object):
+        if self.verbose:
+            self.logger.debug(" ".join(values))
 
     def _log_success(self, *values: object):
         if self.verbose:
@@ -89,7 +93,7 @@ class Task:
         # check task interruption
         if self.stop_flag:
             self.set_error()
-            self._log_error("interrupted at node", self.workflow.steps[self.current_step].id)
+            self._log_error("interrupted at node", self.workflow.steps[self.current_step].name)
             return errno.EINTR
 
         # check node reachability, which include whether a node is in the error state
@@ -111,7 +115,9 @@ class Task:
 
         DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
 
-        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
+        self._log_debug(f"Executing {current_node}...")
+        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node,
+                                               self.args)
         if status != 0:
             self.set_error()
             self._log_error(f"Node execution error [{current_node.name}]: {status}: {message}")
