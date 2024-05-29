@@ -18,8 +18,7 @@ class BaseNode(ABCBaseNode):
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
-        self.logger = logger.bind(app=f"Node {name}")
-        self.args = args
+        self.logger = logger.bind(app=f"Node {name}")   
 
     def __repr__(self) -> str:
         return self.name
