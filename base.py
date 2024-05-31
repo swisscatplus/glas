@@ -102,7 +102,7 @@ class BaseScheduler:
         """Stop the orchestrator."""
         response.status_code = status.HTTP_204_NO_CONTENT
 
-        if self.orchestrator.stop() != 0:
+        if self.orchestrator.stop() != OrchestratorErrorCodes.OK:
             response.status_code = status.HTTP_409_CONFLICT
         return
 

@@ -127,10 +127,10 @@ class BaseOrchestrator(ABC):
 
         return OrchestratorErrorCodes.OK
 
-    def stop(self) -> int:
+    def stop(self) -> OrchestratorErrorCodes:
         if self.state == OrchestratorState.STOPPED:
             self.logger.info("already stopped")
-            return 1
+            return OrchestratorErrorCodes.CANCELLED
 
         self._stop_callback()
 
@@ -151,7 +151,7 @@ class BaseOrchestrator(ABC):
         self.state = OrchestratorState.STOPPED
         self.logger.warning("stopped")
 
-        return 0
+        return OrchestratorErrorCodes.OK
 
     def add_task(self, workflow: Workflow, args: Dict[str, any] = None) -> None:
         database = DatabaseConnector()
