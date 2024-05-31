@@ -26,6 +26,22 @@ class BaseOrchestrator(ABC):
         self.emulate = emulate
         self.state = OrchestratorState.STOPPED
 
+        if self.emulate:
+            print("")
+            print("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓")
+            print("┃                                                                              ┃")
+            print("┃                              !!! WARNING !!!                                 ┃")
+            print("┃                                                                              ┃")
+            print("┃       You are running this program in EMULATION MODE.                        ┃")
+            print("┃                                                                              ┃")
+            print("┃       This mode is intended for testing and development purposes only.       ┃")
+            print("┃                                                                              ┃")
+            print("┃       Some features may not work as expected, and performance might be       ┃")
+            print("┃       different from the live environment.                                   ┃")
+            print("┃                                                                              ┃")
+            print("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+            print("")
+
         self.nodes_path = nodes_path
         self.workflows_path = workflows_path
         self.nodes: list[BaseNode] = []
