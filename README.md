@@ -189,7 +189,7 @@ class MyCustomNode(BaseNode):
         return 0, None, None
 ```
 
-The nodes files can be created in a new folder called `nodes` at the root of the project for a better file structure.
+The nodes files can be created in a new folder called `nodes` in the source folder for a better file structure.
 
 # How to Execute
 
