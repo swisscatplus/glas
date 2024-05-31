@@ -1,3 +1,4 @@
+import errno
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Dict
@@ -90,6 +91,10 @@ class BaseOrchestrator(ABC):
 
         self.terminate_event.clear()
         self.logger.info("starting...")
+
+        db = DatabaseConnector()
+        if not db.is_connected():
+            return OrchestratorErrorCodes.DATABASE_CONNECTION_REFUSED
 
         if (err_code := self._load_nodes(self.nodes_path)) != OrchestratorErrorCodes.OK:
             self.state = OrchestratorState.ERROR
