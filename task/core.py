@@ -49,7 +49,7 @@ class Task:
         return TaskModel(
             uuid=str(self.uuid),
             current_step=self.current_step,
-            state=self.state,
+            state=self.state.name,
             workflow=self.workflow.model_dump(),
         )
 

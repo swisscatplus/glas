@@ -7,4 +7,4 @@ class TaskModel(BaseModel):
     uuid: str
     workflow: WorkflowModel
     current_step: int
-    state: int
+    state: str
