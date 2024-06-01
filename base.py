@@ -59,7 +59,7 @@ class BaseScheduler:
     def init_admin_routes(self) -> None:
         """TODO Those routes NEED to be account/key/password protected !"""
         self.admin_router.add_api_route(
-            "/start",
+            "/orchestrator/start",
             self.start_orchestrator,
             methods=["POST"],
             status_code=status.HTTP_204_NO_CONTENT,
@@ -69,9 +69,9 @@ class BaseScheduler:
             },
         )
         self.admin_router.add_api_route(
-            "/stop",
+            "/orchestrator/stop",
             self.stop,
-            methods=["POST"],
+            methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
                 status.HTTP_204_NO_CONTENT: {"description": "The orchestrator successfully stopped."},
@@ -79,9 +79,9 @@ class BaseScheduler:
             },
         )
         self.admin_router.add_api_route(
-            "/full-stop",
+            "/stop",
             self.full_stop,
-            methods=["POST"],
+            methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
         )
@@ -116,7 +116,7 @@ class BaseScheduler:
         """Start the orchestrator"""
         response.status_code = status.HTTP_204_NO_CONTENT
 
-        if self.orchestrator.start() != OrchestratorErrorCodes.CANCELLED:
+        if self.orchestrator.start() != OrchestratorErrorCodes.OK:
             response.status_code = status.HTTP_409_CONFLICT
         return
 
