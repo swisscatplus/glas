@@ -20,7 +20,6 @@ class DBNodeCallRecord:
             n.id AS id,
             n.name AS name,
             endpoint,
-            message,
             COUNT(c.id) AS call_count,
             AVG(c.duration) AS average_execution_duration,
             MIN(c.duration) AS minimum_execution_duration,
