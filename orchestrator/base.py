@@ -118,6 +118,13 @@ class BaseOrchestrator(ABC):
             self.state = OrchestratorState.ERROR
             return err_code
 
+        if len(self.workflows) == 0:
+            self.logger.error("no workflows found")
+            self.state = OrchestratorState.ERROR
+            return OrchestratorErrorCodes.CANCELLED
+
+        self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
+
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")
 
