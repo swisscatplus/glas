@@ -1,4 +1,4 @@
-import atexit
+from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +13,13 @@ from .orchestrator.enums import OrchestratorErrorCodes
 class BaseScheduler:
     def __init__(self, orchestrator: BaseOrchestrator, port: int) -> None:
         self.logger = None
-        self.api = FastAPI()
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            yield
+            self.orchestrator.stop()
+
+        self.api = FastAPI(lifespan=lifespan)
         self.api.add_middleware(
             CORSMiddleware,
             allow_origins=["http://localhost:5173"],
@@ -24,8 +30,6 @@ class BaseScheduler:
 
         self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
-
-        atexit.register(lambda: self.orchestrator.stop())
 
         self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
         self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
@@ -85,6 +89,11 @@ class BaseScheduler:
             status_code=status.HTTP_204_NO_CONTENT,
             responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
         )
+        self.admin_router.add_api_route(
+            "/reload-config",
+            self.reload_config,
+            methods=["PATCH"],
+        )
 
     def init_lab_routes(self) -> None:
         self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
@@ -98,6 +107,23 @@ class BaseScheduler:
 
         self.server.run()  # need to run as last
 
+    def reload_config(self, data: PatchConfig, response: Response) -> None:
+        self.logger.info("reloading config...")
+
+        if len(self.orchestrator.get_running_tasks()) != 0:
+            self.logger.info("some tasks are still running, cancelling config reload")
+            response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
+            return
+
+        if (err_code := self.orchestrator.load_config(data.nodes_config,
+                                                      data.workflows_config)) != OrchestratorErrorCodes.OK:
+            self.logger.error(f"Failed to load config: {err_code}. Stopping scheduler...")
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            self.server.should_exit = True
+            return
+
+        self.logger.success(f"config reloaded")
+
     def stop(self, response: Response):
         """Stop the orchestrator."""
         response.status_code = status.HTTP_204_NO_CONTENT
@@ -108,7 +134,6 @@ class BaseScheduler:
 
     def full_stop(self):
         """Stop the orchestrator with the scheduler. Only happens if there is a problem with the scheduler itself."""
-        self.orchestrator.stop()
         self.server.should_exit = True
         return
 
@@ -137,6 +162,6 @@ class BaseScheduler:
         if wf is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return data
-        
+
         self.orchestrator.add_task(wf, data.args)
         return data

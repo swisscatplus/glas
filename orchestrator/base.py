@@ -98,6 +98,33 @@ class BaseOrchestrator(ABC):
     def is_running(self) -> bool:
         return not self.terminate_event.is_set()
 
+    def load_config(self, nodes_config: str = None, workflows_config: str = None) -> OrchestratorErrorCodes:
+        if nodes_config is None:
+            nodes_config = self.nodes_path
+        if workflows_config is None:
+            workflows_config = self.workflows_path
+
+        self.nodes.clear()
+        if (err_code := self._load_nodes(nodes_config)) != OrchestratorErrorCodes.OK:
+            self.state = OrchestratorState.ERROR
+            self.logger.error(f"nodes config file not found: {nodes_config}")
+            return err_code
+
+        self.workflows.clear()
+        if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
+            self.state = OrchestratorState.ERROR
+            self.logger.error(f"workflows config file not found: {workflows_config}")
+            return err_code
+
+        if len(self.workflows) == 0:
+            self.logger.error("no workflows found")
+            self.state = OrchestratorState.ERROR
+            return OrchestratorErrorCodes.CANCELLED
+
+        self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
+
+        return OrchestratorErrorCodes.OK
+
     def start(self) -> OrchestratorErrorCodes:
         if self.state == OrchestratorState.RUNNING:
             self.logger.info("already running")
@@ -110,20 +137,9 @@ class BaseOrchestrator(ABC):
         if not db.is_connected():
             return OrchestratorErrorCodes.DATABASE_CONNECTION_REFUSED
 
-        if (err_code := self._load_nodes(self.nodes_path)) != OrchestratorErrorCodes.OK:
+        if (err_code := self.load_config()) != OrchestratorErrorCodes.OK:
             self.state = OrchestratorState.ERROR
             return err_code
-
-        if (err_code := self._load_workflows(self.workflows_path)) != OrchestratorErrorCodes.OK:
-            self.state = OrchestratorState.ERROR
-            return err_code
-
-        if len(self.workflows) == 0:
-            self.logger.error("no workflows found")
-            self.state = OrchestratorState.ERROR
-            return OrchestratorErrorCodes.CANCELLED
-
-        self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
 
         self.state = OrchestratorState.RUNNING
         self.logger.success("started")
@@ -160,12 +176,12 @@ class BaseOrchestrator(ABC):
 
     def add_task(self, workflow: Workflow, args: Dict[str, any] = None) -> None:
         database = DatabaseConnector()
-        
+
         task = Task(workflow, args, self.verbose)
 
         DBTask.insert(database, str(task.uuid), task.workflow.id)
         DBWorkflowUsageRecord.insert(database, workflow.id)
-        
+
         task_thread = threading.Thread(
             name=f"task:{task.workflow.name}", target=task.run, args=(self._remove_finished_task,)
         )

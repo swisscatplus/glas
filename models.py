@@ -12,6 +12,11 @@ class DiagnosticModel(BaseModel):
     nodes: list[object]
 
 
+class PatchConfig(BaseModel):
+    nodes_config: str
+    workflows_config: str
+
+
 class StepModel(BaseModel):
     name: str
     position: int
