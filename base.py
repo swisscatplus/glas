@@ -2,12 +2,11 @@ import atexit
 
 from fastapi import APIRouter, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
 from uvicorn import Config, Server
 
 from .logger import LoggingManager
-from .orchestrator.base import BaseOrchestrator
 from .models import *
+from .orchestrator.base import BaseOrchestrator
 from .orchestrator.enums import OrchestratorErrorCodes
 
 

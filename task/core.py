@@ -4,8 +4,6 @@ import uuid
 from datetime import datetime
 from typing import Callable, Self, Dict
 
-from loguru import logger
-
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
 from ..task.enums import TaskState
