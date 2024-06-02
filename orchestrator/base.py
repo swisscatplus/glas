@@ -7,6 +7,7 @@ from loguru import logger
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
+from ..logger import LoggingManager
 from ..nodes.base import BaseNode
 from ..orchestrator.enums import OrchestratorState
 from ..task.core import Task
@@ -21,7 +22,7 @@ class BaseOrchestrator(ABC):
             verbose: bool = False,
             emulate: bool = False,
     ) -> None:
-        self.logger = logger.bind(app="Orchestrator")
+        self.logger = LoggingManager.get_logger("orchestrator", app="Orchestrator")
         self.verbose = verbose
         self.emulate = emulate
         self.state = OrchestratorState.STOPPED

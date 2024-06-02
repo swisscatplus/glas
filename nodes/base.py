@@ -1,24 +1,21 @@
 import threading
 import time
-import json
-from typing import Self, Dict
-
-from loguru import logger
+from typing import Self
 
 from ..database import DatabaseConnector, DBNodeCallRecord
-from ..nodes.models import BaseNodeModel
+from ..logger import insert_data_sample, LoggingManager
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
-from ..logger import insert_data_sample
+from ..nodes.models import BaseNodeModel
 
 
 class BaseNode(ABCBaseNode):
-    def __init__(self, _id: str, name: str, args: Dict[str, any] = None) -> None:
+    def __init__(self, _id: str, name: str) -> None:
         self.id = _id
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
-        self.logger = logger.bind(app=f"Node {name}")   
+        self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
 
     def __repr__(self) -> str:
         return self.name
@@ -36,13 +33,12 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.AVAILABLE
 
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
-                args: Dict[str, any] = None,
-                save: bool = True) -> tuple[int, str | None]:
+                args: dict[str, any] = None, save: bool = True) -> tuple[int, str | None]:
         with self.mu:
             start = time.time()
             self.state = NodeState.IN_USE
 
-            status, message, endpoint = self._execute(src, dst, args)
+            status, message, endpoint = self._execute(src, dst, task_id, args)
             if status != 0:
                 self.error()
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
@@ -79,9 +75,7 @@ class BaseNode(ABCBaseNode):
     def is_reachable(self) -> bool:
         return self._is_reachable() and not self.is_error()
 
-    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[
-        int, str | None, str | None]:
-        """Executes a node for simulation purposes."""
+    def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[int, str | None, str | None]:
         raise NotImplementedError
 
     def _restart(self) -> int:

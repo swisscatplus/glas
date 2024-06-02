@@ -40,8 +40,16 @@ class ABCBaseNode(ABC):
         ...
 
     @abstractmethod
-    def _execute(self, src: Self, dst: Self) -> tuple[int, str | None]:
-        """Executes a node for simulation purposes."""
+    def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[int, str | None, str | None]:
+        """
+        Execute the node core code
+
+        :param src: Source node
+        :param dst: Destination node
+        :param task_id: Caller task id
+        :param args: Optional execution arguments
+        :return: A tuple with the status, error message if any, and endpoint if any
+        """
         ...
 
     @abstractmethod

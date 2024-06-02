@@ -7,6 +7,7 @@ from typing import Callable, Self, Dict
 from loguru import logger
 
 from ..database import DatabaseConnector, DBTask
+from ..logger import LoggingManager
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
@@ -22,7 +23,7 @@ class Task:
         self.state = TaskState.PENDING
         self.stop_flag = False
         self.current_step = -1
-        self.logger = logger.bind(app=f"Task {self.uuid}: {self.workflow.name}")
+        self.logger = LoggingManager.get_logger(f"task-{self.uuid}", app=f"Task {self.uuid}: {self.workflow.name}")
         self.db = DatabaseConnector()
 
     def _log_info(self, *values: object):
