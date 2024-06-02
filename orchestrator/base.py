@@ -112,13 +112,11 @@ class BaseOrchestrator(ABC):
 
         self.workflows.clear()
         if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
-            self.state = OrchestratorState.ERROR
             self.logger.error(f"workflows config file not found: {workflows_config}")
             return err_code
 
         if len(self.workflows) == 0:
             self.logger.error("no workflows found")
-            self.state = OrchestratorState.ERROR
             return OrchestratorErrorCodes.CANCELLED
 
         self.logger.success(f"successfully loaded {len(self.workflows)} workflows")

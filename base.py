@@ -107,7 +107,7 @@ class BaseScheduler:
 
         self.server.run()  # need to run as last
 
-    def reload_config(self, data: PatchConfig, response: Response) -> None:
+    def reload_config(self, data: PatchConfig, response: Response):
         self.logger.info("reloading config...")
 
         if len(self.orchestrator.get_running_tasks()) != 0:
@@ -115,14 +115,13 @@ class BaseScheduler:
             response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
             return
 
-        if (err_code := self.orchestrator.load_config(data.nodes_config,
-                                                      data.workflows_config)) != OrchestratorErrorCodes.OK:
-            self.logger.error(f"Failed to load config: {err_code}. Stopping scheduler...")
-            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            self.server.should_exit = True
-            return
+        if (err_code := self.orchestrator.load_config(data.nodes_config, data.workflows_config)) != OrchestratorErrorCodes.OK:
+            self.logger.error(f"Failed to load config: {err_code}")
+            response.status_code = status.HTTP_201_CREATED
+        else:
+            self.logger.success(f"config reloaded")
 
-        self.logger.success(f"config reloaded")
+        return {"loaded_workflows": len(self.orchestrator.workflows), "loaded_nodes": len(self.orchestrator.nodes)}
 
     def stop(self, response: Response):
         """Stop the orchestrator."""
