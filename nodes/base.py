@@ -1,24 +1,23 @@
 import threading
 import time
-import json
-from typing import Self, Dict
+from typing import Self
 
 from loguru import logger
 
 from ..database import DatabaseConnector, DBNodeCallRecord
-from ..nodes.models import BaseNodeModel
+from ..logger import insert_data_sample
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
-from ..logger import insert_data_sample
+from ..nodes.models import BaseNodeModel
 
 
 class BaseNode(ABCBaseNode):
-    def __init__(self, _id: str, name: str, args: Dict[str, any] = None) -> None:
+    def __init__(self, _id: str, name: str) -> None:
         self.id = _id
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
-        self.logger = logger.bind(app=f"Node {name}")   
+        self.logger = logger.bind(app=f"Node {name}")
 
     def __repr__(self) -> str:
         return self.name
@@ -36,8 +35,7 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.AVAILABLE
 
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
-                args: Dict[str, any] = None,
-                save: bool = True) -> tuple[int, str | None]:
+                args: dict[str, any] = None, save: bool = True) -> tuple[int, str | None]:
         with self.mu:
             start = time.time()
             self.state = NodeState.IN_USE
@@ -79,9 +77,15 @@ class BaseNode(ABCBaseNode):
     def is_reachable(self) -> bool:
         return self._is_reachable() and not self.is_error()
 
-    def _execute(self, src: "BaseNode", dst: "BaseNode", args: Dict[str, any] = None) -> tuple[
-        int, str | None, str | None]:
-        """Executes a node for simulation purposes."""
+    def _execute(self, src: Self, dst: Self, args: dict[str, any] = None) -> tuple[int, str | None, str | None]:
+        """
+        Execute the node core code
+
+        :param src: Source node
+        :param dst: Destination node
+        :param args: Optional execution arguments
+        :return: A tuple with the status, error message if any, and endpoint if any
+        """
         raise NotImplementedError
 
     def _restart(self) -> int:
