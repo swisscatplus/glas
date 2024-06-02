@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import csv
 import os
 import sys
 
+import loguru
 import matplotlib
 import matplotlib.pyplot as plt
 from loguru import logger
@@ -102,19 +105,41 @@ def insert_data_sample(task_id: str, wf_name: str, id: str, start: float, end: f
         csv_writer.writerow([task_id, wf_name, id, start, end])
 
 
-def setup_logger(save_logs: bool = True) -> None:
-    fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
+class SingletonMeta(type):
+    _instances = {}
 
-    logger.remove(0)
-    logger.add(
-        sys.stdout,
-        level="TRACE",
-        format=fmt,
-    )
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
 
-    if save_logs:
-        init_collection()
-        logger.add("scheduler.log", format=fmt, rotation="10 MB")
+
+class LoggingManager(metaclass=SingletonMeta):
+    loggers: dict[str, loguru.Logger] = {}
+
+    def __init__(self, save_logs: bool = True, debug: bool = False):
+        if debug:
+            fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
+        else:
+            fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>[{extra[app]}] {message}</level>"
+
+        logger.remove(0)
+        logger.add(
+            sys.stdout,
+            level="TRACE",
+            format=fmt,
+        )
+
+        if save_logs:
+            init_collection()
+            logger.add("scheduler.log", format=fmt, rotation="10 MB")
+
+    @classmethod
+    def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:
+        if _id not in cls.loggers:
+            cls.loggers[_id] = logger.bind(**bind_kwargs)
+        return cls.loggers[_id]
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from uvicorn import Config, Server
 
+from .logger import LoggingManager
 from .orchestrator.base import BaseOrchestrator
 from .models import *
 from .orchestrator.enums import OrchestratorErrorCodes
@@ -35,7 +36,7 @@ class BaseScheduler:
         self.include_routers()
 
     def bind_logger_name(self, logger_name: str):
-        self.logger = logger.bind(app=logger_name)
+        self.logger = LoggingManager.get_logger("scheduler", app=logger_name)
 
     def init_routes(self) -> None:
         self.init_lab_routes()

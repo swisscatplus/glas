@@ -1,5 +1,6 @@
 import argparse
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="TaskScheduler",
@@ -37,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-e", "--emulate", action="store_true", help="Emulate the behavior of the nodes"
     )
+    parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
 
     return parser.parse_args()
- # type: ignore
+# type: ignore

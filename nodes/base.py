@@ -2,10 +2,8 @@ import threading
 import time
 from typing import Self
 
-from loguru import logger
-
 from ..database import DatabaseConnector, DBNodeCallRecord
-from ..logger import insert_data_sample
+from ..logger import insert_data_sample, LoggingManager
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
 from ..nodes.models import BaseNodeModel
@@ -17,7 +15,7 @@ class BaseNode(ABCBaseNode):
         self.name = name
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
-        self.logger = logger.bind(app=f"Node {name}")
+        self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
 
     def __repr__(self) -> str:
         return self.name
@@ -40,7 +38,7 @@ class BaseNode(ABCBaseNode):
             start = time.time()
             self.state = NodeState.IN_USE
 
-            status, message, endpoint = self._execute(src, dst, args)
+            status, message, endpoint = self._execute(src, dst, task_id, args)
             if status != 0:
                 self.error()
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
@@ -77,15 +75,7 @@ class BaseNode(ABCBaseNode):
     def is_reachable(self) -> bool:
         return self._is_reachable() and not self.is_error()
 
-    def _execute(self, src: Self, dst: Self, args: dict[str, any] = None) -> tuple[int, str | None, str | None]:
-        """
-        Execute the node core code
-
-        :param src: Source node
-        :param dst: Destination node
-        :param args: Optional execution arguments
-        :return: A tuple with the status, error message if any, and endpoint if any
-        """
+    def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[int, str | None, str | None]:
         raise NotImplementedError
 
     def _restart(self) -> int:
