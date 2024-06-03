@@ -117,7 +117,6 @@ class BaseOrchestrator(ABC):
 
         if len(self.workflows) == 0:
             self.logger.error("no workflows found")
-            return OrchestratorErrorCodes.CANCELLED
 
         self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
 
@@ -163,6 +162,9 @@ class BaseOrchestrator(ABC):
             thread.join()
 
         self.running_tasks.clear()
+
+        for node in self.nodes:
+            node.shutdown()
 
         self.nodes.clear()
         self.workflows.clear()
