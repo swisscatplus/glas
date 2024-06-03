@@ -54,11 +54,20 @@ class BaseNode(ABCBaseNode):
             return 0, None
 
     def restart(self) -> int:
+        self.logger.info("restarting...")
+
         status = self._restart()
 
-        self.available()
+        if status == 0:
+            self.available()
+            self.logger.success("restarted successfully")
+        else:
+            self.logger.error(f"restart failed: {status}")
 
         return status
+
+    def shutdown(self):
+        pass
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
@@ -80,7 +89,7 @@ class BaseNode(ABCBaseNode):
         raise NotImplementedError
 
     def _restart(self) -> int:
-        raise NotImplementedError
+        pass
 
     def save_properties(self, db: DatabaseConnector) -> None:
         """Save in the database the node properties if some"""
