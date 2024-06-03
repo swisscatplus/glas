@@ -16,7 +16,7 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
         self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
-
+        
     def __repr__(self) -> str:
         return self.name
 
@@ -27,6 +27,7 @@ class BaseNode(ABCBaseNode):
         return self.state == NodeState.AVAILABLE
 
     def error(self) -> None:
+        """Deprecated, use self.set_error()"""
         self.state = NodeState.ERROR
 
     def available(self) -> None:
@@ -84,3 +85,7 @@ class BaseNode(ABCBaseNode):
     def save_properties(self, db: DatabaseConnector) -> None:
         """Save in the database the node properties if some"""
         pass
+
+    def set_error(self, message: str):
+        self.state = NodeState.ERROR
+        self.logger.error(message)

@@ -6,4 +6,3 @@ class BaseNodeModel(BaseModel):
     name: str
     status: str
     online: bool
-    type: str
