@@ -61,7 +61,7 @@ class BaseNode(ABCBaseNode):
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
-            id=self.id, name=self.name, status=self.state.name, online=self.is_reachable(), type="other"
+            id=self.id, name=self.name, status=self.state.name, online=self.is_reachable()
         )
 
     def _is_reachable(self) -> bool:
