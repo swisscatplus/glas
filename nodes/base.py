@@ -89,7 +89,7 @@ class BaseNode(ABCBaseNode):
         raise NotImplementedError
 
     def _restart(self) -> int:
-        pass
+        return 0
 
     def save_properties(self, db: DatabaseConnector) -> None:
         """Save in the database the node properties if some"""
