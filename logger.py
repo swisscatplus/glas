@@ -138,6 +138,8 @@ class LoggingManager(metaclass=SingletonMeta):
     @classmethod
     def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:
         if _id not in cls.loggers:
+            if 'app' not in bind_kwargs:
+                bind_kwargs['app'] = "General"
             cls.loggers[_id] = logger.bind(**bind_kwargs)
         return cls.loggers[_id]
 
