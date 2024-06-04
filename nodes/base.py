@@ -3,7 +3,7 @@ import time
 from typing import Self
 
 from ..database import DatabaseConnector, DBNodeCallRecord
-from ..logger import insert_data_sample, LoggingManager
+from ..logger import LoggingManager
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
 from ..nodes.models import BaseNodeModel
@@ -48,7 +48,7 @@ class BaseNode(ABCBaseNode):
             self.state = NodeState.AVAILABLE
 
             if save:
-                insert_data_sample(task_id, wf_name, self.id, start, time.time())
+                LoggingManager.insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
             return 0, None
 
