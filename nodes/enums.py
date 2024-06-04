@@ -5,3 +5,4 @@ class NodeState(Enum):
     AVAILABLE = auto()
     IN_USE = auto()
     ERROR = auto()
+    RECOVERY = auto()

@@ -17,6 +17,10 @@ class PatchConfig(BaseModel):
     workflows_config: str
 
 
+class PatchTask(BaseModel):
+    task_id: str
+
+
 class StepModel(BaseModel):
     name: str
     position: int

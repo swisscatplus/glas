@@ -1,6 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
@@ -84,6 +84,12 @@ class BaseOrchestrator(ABC):
     def get_running_tasks(self) -> list[tuple[threading.Thread, Task]]:
         return self.running_tasks
 
+    def get_task_by_id(self, task_id: str) -> Optional[Task]:
+        for _, task in self.running_tasks:
+            if str(task.uuid) == task_id:
+                return task
+        return None
+
     def get_workflow_by_name(self, name: str) -> Workflow | None:
         found = list(filter(lambda w: w.name == name, self.get_workflows()))
 
@@ -110,6 +116,11 @@ class BaseOrchestrator(ABC):
             self.logger.error(f"nodes config file not found: {nodes_config}")
             return err_code
 
+        if len(self.nodes) == 0:
+            self.logger.error("no nodes found")
+        else:
+            self.logger.success(f"successfully loaded {len(self.nodes)} nodes")
+
         self.workflows.clear()
         if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
             self.logger.error(f"workflows config file not found: {workflows_config}")
@@ -117,8 +128,8 @@ class BaseOrchestrator(ABC):
 
         if len(self.workflows) == 0:
             self.logger.error("no workflows found")
-
-        self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
+        else:
+            self.logger.success(f"successfully loaded {len(self.workflows)} workflows")
 
         return OrchestratorErrorCodes.OK
 

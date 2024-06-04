@@ -6,6 +6,7 @@ from typing import Callable, Self, Dict
 
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
+from ..nodes.enums import NodeState
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
@@ -23,6 +24,8 @@ class Task:
         self.current_step = -1
         self.logger = LoggingManager.get_logger(f"task-{self.uuid}", app=f"Task {self.uuid}: {self.workflow.name}")
         self.db = DatabaseConnector()
+        self.pause_event = threading.Event()
+        self.pause_condition = threading.Condition()
 
     def _log_info(self, *values: object):
         if self.verbose:
@@ -87,6 +90,23 @@ class Task:
 
     def stop(self) -> None:
         self.stop_flag = True
+        self.pause_event.clear()
+
+    def continue_(self) -> int:
+        for node in self.workflow.steps:
+            if node.state in [NodeState.ERROR, NodeState.RECOVERY]:
+                status = node.restart()
+
+                if status != 0:
+                    return status
+
+        self.set_active()
+        self.pause_event.clear()
+
+        with self.pause_condition:
+            self.pause_condition.notify()
+
+        return 0
 
     def _run(self, step_id: int = 0) -> int:
         # check task interruption
@@ -120,7 +140,14 @@ class Task:
         if status != 0:
             self.set_error()
             self._log_error(f"Node execution error [{current_node.name}]: {status}: {message}")
-            return errno.EFAULT
+            self.pause_event.set()
+
+        if self.pause_event.is_set():
+            self.logger.warning("waiting for task to continue")
+
+        with self.pause_condition:
+            while self.pause_event.is_set():
+                self.pause_condition.wait()
 
         return self._run(self.current_step + 1)
 
