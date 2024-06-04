@@ -9,6 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from loguru import logger
 from matplotlib.colors import ListedColormap
+from threading import Lock
 
 COLLECTION_FILE = "./task_execution_logs.csv"
 
@@ -99,10 +100,6 @@ def init_collection() -> None:
         os.remove(COLLECTION_FILE)
 
 
-def insert_data_sample(task_id: str, wf_name: str, id: str, start: float, end: float) -> None:
-    with open(COLLECTION_FILE, "a+", newline="") as file:
-        csv_writer = csv.writer(file)
-        csv_writer.writerow([task_id, wf_name, id, start, end])
 
 
 class SingletonMeta(type):
@@ -117,8 +114,11 @@ class SingletonMeta(type):
 
 class LoggingManager(metaclass=SingletonMeta):
     loggers: dict[str, loguru.Logger] = {}
+    mu = Lock()
 
     def __init__(self, save_logs: bool = True, debug: bool = False):
+        
+
         if debug:
             fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
         else:
@@ -135,6 +135,13 @@ class LoggingManager(metaclass=SingletonMeta):
             init_collection()
             logger.add("scheduler.log", format=fmt, rotation="10 MB")
 
+    @classmethod
+    def insert_data_sample(cls, task_id: str, wf_name: str, id: str, start: float, end: float) -> None:
+        with cls.mu:
+            with open(COLLECTION_FILE, "a+", newline="") as file:
+                csv_writer = csv.writer(file)
+                csv_writer.writerow([task_id, wf_name, id, start, end])
+    
     @classmethod
     def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:
         if _id not in cls.loggers:
