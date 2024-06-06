@@ -2,10 +2,12 @@ import errno
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Self, Dict
+from typing import Callable, Self, Optional
 
+from nodes.BufferedNode import BufferedNode
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
+from ..nodes.base import BaseNode
 from ..nodes.enums import NodeState
 from ..task.enums import TaskState
 from ..task.models import TaskModel
@@ -13,7 +15,7 @@ from ..workflow.core import Workflow
 
 
 class Task:
-    def __init__(self, workflow: Workflow, args: Dict[str, any] = None, verbose: bool = False) -> None:
+    def __init__(self, workflow: Workflow, args: dict[str, any] = None, verbose: bool = False) -> None:
         self.start_time = datetime.now()
         self.uuid = uuid.uuid4()
         self.workflow = workflow
@@ -108,7 +110,7 @@ class Task:
 
         return 0
 
-    def _run(self, step_id: int = 0) -> int:
+    def _recursion_exit(self, step_id: int) -> Optional[int]:
         # check task interruption
         if self.stop_flag:
             self.set_error()
@@ -126,27 +128,39 @@ class Task:
         if step_id >= len(self.workflow.steps):
             return 0
 
-        # execute the step
+        return None
+
+    def _pre_step_execution(self, current_node: BaseNode, src_node: BaseNode, dst_node: BaseNode):
+        pass
+
+    def _post_step_execution(self, status: int, message: str, current_node: BaseNode, src_node: BaseNode, dst_node: BaseNode):
+        pass
+
+    def _run(self, step_id: int = 0) -> int:
+        if (exit_code := self._recursion_exit(step_id)) is not None:
+            return exit_code
+
+        # fetch the step nodes (source, current, destination)
         self.current_step = step_id
         current_node = self.workflow.steps[step_id]
         src_node = self.workflow.steps[step_id - 1] if step_id > 0 else None
         dst_node = self.workflow.steps[step_id + 1] if step_id < len(self.workflow.steps) - 1 else None
 
-        DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
+        self._pre_step_execution(current_node, src_node, dst_node)
 
-        self._log_debug(f"Executing {current_node}...")
-        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node,
-                                               self.args)
+        DBTask.update_active_step(self.db, str(self.uuid), current_node.id)
+        status, message = current_node.execute(self.db, str(self.uuid), self.workflow.name, src_node, dst_node, self.args)
+
+        self._post_step_execution(status, message, current_node, src_node, dst_node)
+
         if status != 0:
             self.set_error()
             self._log_error(f"Node execution error [{current_node.name}]: {status}: {message}")
             self.pause_event.set()
 
-        if self.pause_event.is_set():
-            self.logger.warning("waiting for task to continue")
-
         with self.pause_condition:
             while self.pause_event.is_set():
+                self.logger.warning("waiting for task to continue")
                 self.pause_condition.wait()
 
         return self._run(self.current_step + 1)
