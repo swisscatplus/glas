@@ -101,7 +101,7 @@ class BaseNode(ABCBaseNode):
         return True
 
     def is_usable(self) -> bool:
-        return self._is_reachable() and not self.is_error()
+        return self._is_reachable() or self.is_error()
 
     def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[
         int, str | None, str | None]:

@@ -85,7 +85,7 @@ class Task:
 
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
         # check the reachability of all future nodes
-        unreachable_steps = filter(lambda step: not step.is_reachable(), self.workflow.steps[self.current_step:])
+        unreachable_steps = filter(lambda step: not step.is_usable(), self.workflow.steps[self.current_step:])
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
         return any(unreachable_ids), unreachable_ids
 
