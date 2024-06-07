@@ -106,6 +106,11 @@ class BaseScheduler:
             self.restart_node,
             methods=["PATCH"]
         )
+        self.admin_router.add_api_route(
+            "/running-tasks",
+            self.get_running,
+            methods=["GET"]
+        )
 
     def init_lab_routes(self) -> None:
         self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
