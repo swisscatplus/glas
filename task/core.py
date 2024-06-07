@@ -160,6 +160,7 @@ class Task:
         with self.pause_condition:
             while self.pause_event.is_set():
                 self.logger.warning("waiting for task to continue")
+                self.logger.info(f"Manually move the plate from {current_node.name} to {dst_node.name}")
                 self.pause_condition.wait()
 
         return self._run(self.current_step + 1)

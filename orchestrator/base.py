@@ -126,7 +126,12 @@ class BaseOrchestrator(ABC):
 
         self.workflows.clear()
         if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
-            self.logger.error(f"workflows config file not found: {workflows_config}")
+
+            match err_code:
+                case OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION:
+                    self.logger.error(f"workflows config file not found: {workflows_config}")
+                case OrchestratorErrorCodes.COULD_NOT_PARSE_CONFIGURATION:
+                    self.logger.error(f"workflows config file incorrect: {workflows_config}")
             return err_code
 
         if len(self.workflows) == 0:
@@ -201,3 +206,30 @@ class BaseOrchestrator(ABC):
         )
         task_thread.start()
         self.running_tasks.append((task_thread, task))
+
+    def continue_task(self, uuid: str) -> OrchestratorErrorCodes:
+        
+        task = self.get_task_by_id(uuid)
+
+        if task is None:
+            return OrchestratorErrorCodes.CONTENT_NOT_FOUND
+        
+        self.logger.info(f"continuing task {uuid}")
+        if task.continue_() != 0:
+            self.logger.critical(f"Impossible to continue task: {uuid}")
+            return OrchestratorErrorCodes.CONTINUE_TASK_FAILED
+        
+        return OrchestratorErrorCodes.OK
+    
+    def restart_node(self, name: str) -> OrchestratorErrorCodes:
+
+        for node in self.get_all_nodes():
+            if node.name == name:
+                self.logger.info(f"Restarting node {name}")
+                if node.restart() == 0:
+                    return OrchestratorErrorCodes.OK
+                else:
+                    self.logger.critical(f"Impossible to restart node: {name}")
+                    return OrchestratorErrorCodes.RESTART_NODE_FAILED
+
+        return OrchestratorErrorCodes.CONTENT_NOT_FOUND
