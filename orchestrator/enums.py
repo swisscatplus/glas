@@ -1,12 +1,14 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class OrchestratorErrorCodes(Enum):
-    OK = 0
-    CANCELLED = 1
-    COULD_NOT_FIND_CONFIGURATION = 2
-    COULD_NOT_PARSE_CONFIGURATION = 3
-    DATABASE_CONNECTION_REFUSED = 4
+    OK = auto()
+    CANCELLED = auto()
+    COULD_NOT_FIND_CONFIGURATION = auto()
+    COULD_NOT_PARSE_CONFIGURATION = auto()
+    DATABASE_CONNECTION_REFUSED = auto()
+    CONTENT_NOT_FOUND = auto()
+    CONTINUE_TASK_FAILED = auto()
 
 
 class OrchestratorState(Enum):

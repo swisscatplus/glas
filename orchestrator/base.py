@@ -206,3 +206,17 @@ class BaseOrchestrator(ABC):
         )
         task_thread.start()
         self.running_tasks.append((task_thread, task))
+
+    def continue_task(self, uuid: str) -> OrchestratorErrorCodes:
+        
+        task = self.get_task_by_id(uuid)
+
+        if task is None:
+            return OrchestratorErrorCodes.CONTENT_NOT_FOUND
+        
+        self.logger.info(f"continuing task {uuid}")
+        if task.continue_() != 0:
+            self.logger.critical(f"Impossible to continue task: {uuid}")
+            return OrchestratorErrorCodes.CONTINUE_TASK_FAILED
+        
+        return OrchestratorErrorCodes.OK
