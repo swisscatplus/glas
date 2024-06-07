@@ -94,6 +94,11 @@ class BaseScheduler:
             self.reload_config,
             methods=["PATCH"],
         )
+        self.admin_router.add_api_route(
+            "/continue-task",
+            self.continue_task,
+            methods=["PATCH"]
+        )
 
     def init_lab_routes(self) -> None:
         self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
@@ -107,6 +112,19 @@ class BaseScheduler:
 
         self.server.run()  # need to run as last
 
+    def continue_task(self, data: PatchTask, response: Response):
+        self.logger.info(f"continuing task {data.task_id}")
+
+        task = self.orchestrator.get_task_by_id(data.task_id)
+
+        if task is None:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return
+
+        if task.continue_() != 0:
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            self.logger.critical(f"Impossible to continue task: {data.task_id}")
+
     def reload_config(self, data: PatchConfig, response: Response):
         self.logger.info("reloading config...")
 
@@ -115,7 +133,11 @@ class BaseScheduler:
             response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
             return
 
-        if (err_code := self.orchestrator.load_config(data.nodes_config, data.workflows_config)) != OrchestratorErrorCodes.OK:
+        for node in self.orchestrator.nodes:
+            node.shutdown()
+
+        if (err_code := self.orchestrator.load_config(data.nodes_config,
+                                                      data.workflows_config)) != OrchestratorErrorCodes.OK:
             self.logger.error(f"Failed to load config: {err_code}")
             response.status_code = status.HTTP_201_CREATED
         else:
