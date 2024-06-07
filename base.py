@@ -113,14 +113,14 @@ class BaseScheduler:
         self.server.run()  # need to run as last
 
     def continue_task(self, data: PatchTask, response: Response):
-        self.logger.info(f"continuing task {data.task_id}")
 
         task = self.orchestrator.get_task_by_id(data.task_id)
 
         if task is None:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return
-
+            return "Task does not exist"
+        
+        self.logger.info(f"continuing task {data.task_id}")
         if task.continue_() != 0:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             self.logger.critical(f"Impossible to continue task: {data.task_id}")
