@@ -128,8 +128,16 @@ class BaseScheduler:
                 response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
                 return "Task continuation failed"
 
-    def restart_node(self, data: PatchTask, response: Response):
-        self.orchestrator.get_all_nodes()
+    def restart_node(self, data: PatchNode, response: Response):
+        err_code = self.orchestrator.restart_node(data.name)
+
+        match err_code:
+            case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
+                response.status_code = status.HTTP_404_NOT_FOUND
+                return "Node does not exist"
+            case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
+                response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+                return "Node restart failed"
 
     def reload_config(self, data: PatchConfig, response: Response):
         self.logger.info("reloading config...")

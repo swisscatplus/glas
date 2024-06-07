@@ -9,6 +9,7 @@ class OrchestratorErrorCodes(Enum):
     DATABASE_CONNECTION_REFUSED = auto()
     CONTENT_NOT_FOUND = auto()
     CONTINUE_TASK_FAILED = auto()
+    RESTART_NODE_FAILED = auto()
 
 
 class OrchestratorState(Enum):

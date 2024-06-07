@@ -220,3 +220,16 @@ class BaseOrchestrator(ABC):
             return OrchestratorErrorCodes.CONTINUE_TASK_FAILED
         
         return OrchestratorErrorCodes.OK
+    
+    def restart_node(self, name: str) -> OrchestratorErrorCodes:
+
+        for node in self.get_all_nodes():
+            if node.name == name:
+                self.logger.info(f"Restarting node {name}")
+                if node.restart() == 0:
+                    return OrchestratorErrorCodes.OK
+                else:
+                    self.logger.critical(f"Impossible to restart node: {name}")
+                    return OrchestratorErrorCodes.RESTART_NODE_FAILED
+
+        return OrchestratorErrorCodes.CONTENT_NOT_FOUND
