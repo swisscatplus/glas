@@ -89,7 +89,7 @@ class BaseNode(ABCBaseNode):
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
-            id=self.id, name=self.name, status=self.state.name, online=self.is_reachable()
+            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable()
         )
 
     def _is_reachable(self) -> bool:
@@ -100,7 +100,7 @@ class BaseNode(ABCBaseNode):
         """
         return True
 
-    def is_reachable(self) -> bool:
+    def is_usable(self) -> bool:
         return self._is_reachable() and not self.is_error()
 
     def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[
