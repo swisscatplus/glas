@@ -1,6 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, IO, BinaryIO
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
@@ -57,11 +57,11 @@ class BaseOrchestrator(ABC):
         self._start_callback: Callable[[], None] = lambda: None
 
     @abstractmethod
-    def _load_workflows(self, path: str) -> OrchestratorErrorCodes:
+    def _load_workflows(self, file: IO) -> OrchestratorErrorCodes:
         raise NotImplementedError
 
     @abstractmethod
-    def _load_nodes(self, path: str) -> OrchestratorErrorCodes:
+    def _load_nodes(self, file: IO) -> OrchestratorErrorCodes:
         raise NotImplementedError
 
     def register_stop_callback(self, callback: Callable) -> None:
@@ -104,11 +104,11 @@ class BaseOrchestrator(ABC):
     def is_running(self) -> bool:
         return not self.terminate_event.is_set()
 
-    def load_config(self, nodes_config: str = None, workflows_config: str = None) -> OrchestratorErrorCodes:
+    def load_config(self, nodes_config: BinaryIO = None, workflows_config: BinaryIO = None) -> OrchestratorErrorCodes:
         if nodes_config is None:
-            nodes_config = self.nodes_path
+            nodes_config = open(self.nodes_path, "rb")
         if workflows_config is None:
-            workflows_config = self.workflows_path
+            workflows_config = open(self.workflows_path, "rb")
 
         self.nodes.clear()
         if (err_code := self._load_nodes(nodes_config)) != OrchestratorErrorCodes.OK:

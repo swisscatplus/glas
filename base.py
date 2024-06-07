@@ -1,6 +1,7 @@
+import json
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI, Response, status
+from fastapi import APIRouter, FastAPI, Response, status, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
@@ -140,7 +141,7 @@ class BaseScheduler:
                 response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
                 return "Node restart failed"
 
-    def reload_config(self, data: PatchConfig, response: Response):
+    def reload_config(self, files: list[UploadFile], response: Response):
         self.logger.info("reloading config...")
 
         if len(self.orchestrator.get_running_tasks()) != 0:
@@ -151,8 +152,7 @@ class BaseScheduler:
         for node in self.orchestrator.nodes:
             node.shutdown()
 
-        if (err_code := self.orchestrator.load_config(data.nodes_config,
-                                                      data.workflows_config)) != OrchestratorErrorCodes.OK:
+        if (err_code := self.orchestrator.load_config(files[0].file, files[1].file)) != OrchestratorErrorCodes.OK:
             self.logger.error(f"Failed to load config: {err_code}")
             response.status_code = status.HTTP_201_CREATED
         else:
