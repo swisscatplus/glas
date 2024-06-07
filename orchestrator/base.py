@@ -45,8 +45,6 @@ class BaseOrchestrator(ABC):
         self.nodes: list[BaseNode] = []
         self.workflows: list[Workflow] = []
 
-        self._task_instance = Task
-
         self.terminate_event = threading.Event()
 
         self.running_mutex = threading.Lock()
@@ -190,7 +188,7 @@ class BaseOrchestrator(ABC):
     def add_task(self, workflow: Workflow, args: Dict[str, any] = None) -> None:
         database = DatabaseConnector()
 
-        task = self._task_instance(workflow, args, self.verbose)
+        task = Task(workflow, args, self.verbose)
 
         DBTask.insert(database, str(task.uuid), task.workflow.id)
         DBWorkflowUsageRecord.insert(database, workflow.id)
