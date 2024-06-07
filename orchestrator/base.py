@@ -119,7 +119,10 @@ class BaseOrchestrator(ABC):
         if len(self.nodes) == 0:
             self.logger.error("no nodes found")
         else:
-            self.logger.success(f"successfully loaded {len(self.nodes)} nodes")
+            successfully_loaded = [n for n in self.nodes if not n.is_error()]
+            self.logger.success(f"successfully loaded {len(successfully_loaded)} nodes")
+            if len(self.nodes) != len(successfully_loaded):
+                self.logger.error(f"failed to load {len(self.nodes) - len(successfully_loaded)} nodes")
 
         self.workflows.clear()
         if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
