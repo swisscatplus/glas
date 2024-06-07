@@ -24,8 +24,8 @@ class ABCBaseNode(ABC):
         ...
 
     @abstractmethod
-    def is_reachable(self) -> bool:
-        """Check the reachability of a node.
+    def is_usable(self) -> bool:
+        """Check the usability of a node.
 
         Note: This method's implementation is based on current specifications for
         simulation purposes only. It will need to raise a NotImplementedError when
