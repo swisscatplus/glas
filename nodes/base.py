@@ -95,6 +95,6 @@ class BaseNode(ABCBaseNode):
         """Save in the database the node properties if some"""
         pass
 
-    def set_error(self, message: str):
+    def set_error(self, message: str = "No Comment"):
         self.state = NodeState.ERROR
         self.logger.error(message)
