@@ -12,10 +12,8 @@ class DBNodePropertyModel(BaseModel):
 class DBNodeModel(BaseModel):
     id: str
     name: str
-    static: bool
-    critical: bool
-    source_node: str | None
-    destination_node: str | None
+    node_state_id: int
+    updated_at: str
 
 
 class DBTaskModel(BaseModel):

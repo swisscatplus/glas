@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from .connector import DatabaseConnector
 from .models import DBNodeModel
 
@@ -21,19 +23,16 @@ class DBNode:
         return DBNodeModel(**db.cursor.fetchone())
 
     @classmethod
-    def insert(
-        cls,
-        db: DatabaseConnector,
-        _id: str,
-        name: str,
-        static: bool = True,
-        critical: bool = False,
-        source_node: str | None = None,
-        destination_node: str | None = None,
-    ):
+    def update_state(cls, db: DatabaseConnector, _id: str, state_id: int) -> None:
+        sql = f"UPDATE {cls.__tablename__} SET node_state_id = %s, updated_at = %s WHERE id = %s"
+        data = (state_id, datetime.now(), _id)
+        db.cursor.execute(sql, data)
+
+    @classmethod
+    def insert(cls, db: DatabaseConnector, _id: str, name: str):
         if cls.exists(db, _id):
             return
 
-        sql = f"INSERT INTO {cls.__tablename__} VALUES(%s, %s, %s, %s, %s, %s)"
-        data = (_id, name, static, critical, source_node, destination_node)
+        sql = f"INSERT INTO {cls.__tablename__} VALUES(%s, %s, 1, %s)"
+        data = (_id, name, datetime.now())
         db.cursor.execute(sql, data)

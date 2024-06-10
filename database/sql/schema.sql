@@ -1,4 +1,29 @@
 --
+-- Table structure for table `node_states`
+--
+
+DROP TABLE IF EXISTS `node_states`;
+CREATE TABLE `node_states` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `node_states`
+--
+
+LOCK TABLES `node_states` WRITE;
+INSERT INTO `node_states` VALUES
+(1,'AVAILABLE'),
+(2,'IN USE'),
+(3, 'OFFLINE'),
+(4, 'RECOVERY'),
+(5,'ERROR');
+UNLOCK TABLES;
+
+--
 -- Table structure for table `nodes`
 --
 
@@ -6,13 +31,10 @@ DROP TABLE IF EXISTS `nodes`;
 CREATE TABLE `nodes` (
   `id` varchar(255) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
-  `static` boolean DEFAULT 0,
-  `critical` boolean DEFAULT 0,
-  `source_node` varchar(255) NULL DEFAULT NULL,
-  `destination_node` varchar(255) NULL DEFAULT NULL,
+  `node_state_id` int(11) NOT NULL,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  CONSTRAINT `node_ibfk_1` FOREIGN KEY (`source_node`) REFERENCES `nodes` (`id`),
-  CONSTRAINT `node_ibfk_2` FOREIGN KEY (`destination_node`) REFERENCES `nodes` (`id`)
+  CONSTRAINT `nodes_ibfk_1` FOREIGN KEY (`node_state_id`) REFERENCES `node_states` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --

@@ -2,7 +2,7 @@ import threading
 import time
 from typing import Self
 
-from ..database import DatabaseConnector, DBNodeCallRecord
+from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState
@@ -16,6 +16,8 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
         self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
+
+        DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
 
     def __repr__(self) -> str:
         return self.name
@@ -33,10 +35,10 @@ class BaseNode(ABCBaseNode):
     def available(self) -> None:
         self.state = NodeState.AVAILABLE
 
-    def _pre_execution(self, task_id: str, wf_name: str, src: Self, dst: Self, args: dict[str, any] = None) -> None:
+    def _pre_execution(self, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode", args: dict[str, any] = None) -> None:
         pass
 
-    def _post_execution(self, status: int, msg: str, task_id: str, wf_name: str, src: Self, dst: Self,
+    def _post_execution(self, status: int, msg: str, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
                         args: dict[str, any] = None) -> None:
         pass
 
@@ -54,17 +56,21 @@ class BaseNode(ABCBaseNode):
 
             start = time.time()
             self.state = NodeState.IN_USE
+            DBNode.update_state(db, self.id, self.state.value)
 
             self._pre_execution(task_id, wf_name, src, dst, args)
             status, message, endpoint = self._execute(src, dst, task_id, args)
             self._post_execution(status, message, task_id, wf_name, src, dst, args)
 
             if status != 0:
+                self.state = NodeState.ERROR
+                DBNode.update_state(db, self.id, self.state.value)
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
                 return status, message
 
             DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
+            DBNode.update_state(db, self.id, self.state.value)
 
             if save:
                 LoggingManager.insert_data_sample(task_id, wf_name, self.id, start, time.time())
@@ -82,10 +88,12 @@ class BaseNode(ABCBaseNode):
         else:
             self.logger.error(f"restart failed: {status}")
 
+        DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
+
         return status
 
     def shutdown(self):
-        pass
+        DBNode.update_state(DatabaseConnector(), self.id, NodeState.OFFLINE.value)
 
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
@@ -116,4 +124,6 @@ class BaseNode(ABCBaseNode):
 
     def set_error(self, message: str = "No Comment"):
         self.state = NodeState.ERROR
+        db = DatabaseConnector()
+        DBNode.update_state(db, self.id, self.state.value)
         self.logger.error(message)
