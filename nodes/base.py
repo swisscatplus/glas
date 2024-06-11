@@ -1,6 +1,8 @@
 import threading
 import time
-from typing import Self
+from typing import Self, Optional
+
+from typing_extensions import deprecated, override
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
@@ -22,28 +24,90 @@ class BaseNode(ABCBaseNode):
     def __repr__(self) -> str:
         return self.name
 
-    def is_error(self) -> bool:
-        return self.state == NodeState.ERROR
+    def _pre_execution(self, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
+                       args: Optional[dict[str, any]] = None) -> None:
+        """
+        Method execute just before the _execute call.
 
-    def is_available(self) -> bool:
-        return self.state == NodeState.AVAILABLE
-
-    def error(self) -> None:
-        """Deprecated, use self.set_error()"""
-        self.state = NodeState.ERROR
-
-    def available(self) -> None:
-        self.state = NodeState.AVAILABLE
-
-    def _pre_execution(self, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode", args: dict[str, any] = None) -> None:
+        :param task_id: Caller task's id
+        :param wf_name: Workflow bind to the task
+        :param src: Source node
+        :param dst: Destination node
+        :param args: Execution arguments
+        """
         pass
 
     def _post_execution(self, status: int, msg: str, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
-                        args: dict[str, any] = None) -> None:
+                        args: Optional[dict[str, any]] = None) -> None:
+        """
+        Method execute just after the _execute call.
+
+        :param status: _execute status
+        :param msg: _execute message
+        :param task_id: Caller task's id
+        :param wf_name: Workflow bind to the task
+        :param src: Source node
+        :param dst: Destination node
+        :param args: Execution arguments
+        """
         pass
 
+    def _is_reachable(self) -> bool:
+        """
+        Node specific implementation of the reachability test
+
+        :return: Is the node reachable
+        """
+        return True
+
+    def _execute(self, src: Self, dst: Self, task_id: str, args: Optional[dict[str, any]] = None) -> tuple[
+        int, Optional[str], Optional[str]]:
+        """
+        Node specific implementation of its own execution logic
+
+        :param src: Source node
+        :param dst: Destination node
+        :param task_id: Caller task's id
+        :param args: Execution arguments
+        :return:
+        """
+        ...
+
+    def _restart(self) -> int:
+        """
+        Node specific implementation of its own restart logic
+
+        :return: Restart status
+        """
+        return 0
+
+    def _shutdown(self) -> int:
+        """
+        Node specific implementation of its own shutdown logic
+
+        :return: Shutdown status
+        """
+        return 0
+
+    @override
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
-                args: dict[str, any] = None, save: bool = True) -> tuple[int, str | None]:
+                args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
+        """
+        Common wrapper around the specific `_execute` method.
+
+        This wrapper ensure thread-safe execution by using a mutex and aims to set the node state automatically
+        according to the execution result. It also saves in the database all the state changes and execution statistics,
+        as well as the execution time log for the graph view.
+
+        :param db: Database connector
+        :param task_id: Caller task's id
+        :param wf_name: Workflow bind to the task
+        :param src: Source node
+        :param dst: Destination node
+        :param args: Execution arguments
+        :param save: Save the execution time log
+        :return: The error code and optional message
+        """
         start = time.time()
 
         with self.mu:
@@ -58,6 +122,7 @@ class BaseNode(ABCBaseNode):
             self.state = NodeState.IN_USE
             DBNode.update_state(db, self.id, self.state.value)
 
+            # call the implementation specific `_execute` method
             self._pre_execution(task_id, wf_name, src, dst, args)
             status, message, endpoint = self._execute(src, dst, task_id, args)
             self._post_execution(status, message, task_id, wf_name, src, dst, args)
@@ -77,13 +142,37 @@ class BaseNode(ABCBaseNode):
 
             return 0, None
 
+    @override
+    def serialize(self) -> BaseNodeModel:
+        return BaseNodeModel(
+            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable()
+        )
+
+    @override
+    def is_usable(self) -> bool:
+        return self._is_reachable() and not self.is_error()
+
+    @override
+    def save_properties(self, db: DatabaseConnector) -> None:
+        """
+        Empty saving procedure, left to the user to implement for each child classes
+
+        :param db: Database connector
+        """
+        pass
+
     def restart(self) -> int:
+        """
+        Restart the node
+
+        :return: Restart status
+        """
         self.logger.info("restarting...")
 
         status = self._restart()
 
         if status == 0:
-            self.available()
+            self.set_available()
             self.logger.success("restarted successfully")
         else:
             self.logger.error(f"restart failed: {status}")
@@ -93,37 +182,35 @@ class BaseNode(ABCBaseNode):
         return status
 
     def shutdown(self):
+        """
+        Shutdown the node
+        """
+        self.logger.warning("shutting down...")
+
+        status = self._shutdown()
+
+        if status == 0:
+            self.logger.success("shutdown successfully")
+        else:
+            self.logger.error(f"shutdown failed: {status}")
+
         DBNode.update_state(DatabaseConnector(), self.id, NodeState.OFFLINE.value)
 
-    def serialize(self) -> BaseNodeModel:
-        return BaseNodeModel(
-            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable()
-        )
+    def is_error(self) -> bool:
+        return self.state == NodeState.ERROR
 
-    def _is_reachable(self) -> bool:
-        """
-        Needs to be implemented in a custom fashion for each node derived from this class.
+    def is_available(self) -> bool:
+        return self.state == NodeState.AVAILABLE
 
-        :return: Is the node reachable
-        """
-        return True
-
-    def is_usable(self) -> bool:
-        return self._is_reachable() and not self.is_error()
-
-    def _execute(self, src: Self, dst: Self, task_id: str, args: dict[str, any] = None) -> tuple[
-        int, str | None, str | None]:
-        raise NotImplementedError
-
-    def _restart(self) -> int:
-        return 0
-
-    def save_properties(self, db: DatabaseConnector) -> None:
-        """Save in the database the node properties if some"""
-        pass
+    @deprecated("Use set_error instead")
+    def error(self) -> None:
+        self.state = NodeState.ERROR
 
     def set_error(self, message: str = "No Comment"):
         self.state = NodeState.ERROR
         db = DatabaseConnector()
         DBNode.update_state(db, self.id, self.state.value)
         self.logger.error(message)
+
+    def set_available(self) -> None:
+        self.state = NodeState.AVAILABLE

@@ -149,7 +149,7 @@ class BaseScheduler:
     def reload_config(self, files: list[UploadFile], response: Response):
         self.logger.info("reloading config...")
 
-        if len(self.orchestrator.get_running_tasks()) != 0:
+        if len(self.orchestrator.running_tasks) != 0:
             self.logger.info("some tasks are still running, cancelling config reload")
             response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
             return
@@ -188,7 +188,7 @@ class BaseScheduler:
 
     def get_running(self):
         """Retrieve all the running task."""
-        running_workflows = [task.serialize() for _, task in self.orchestrator.get_running_tasks()]
+        running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return running_workflows
 
     def lab_add_task(self, data: PostWorkflow, response: Response):

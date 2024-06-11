@@ -163,7 +163,7 @@ class MyOrchestrator(BaseOrchestrator):
     """An example of implementation can be found in the Omnifire or Robot Scheduler repository"""
 
     def _find_node_by_id(self, _id: str) -> Optional[BaseNode]:
-        for node in self.nodes:
+        for node in self._nodes:
             if node.id == _id:
                 return node
         return None
@@ -183,7 +183,7 @@ class MyOrchestrator(BaseOrchestrator):
                 self.logger.error(f"Skipping workflow, some node weren't found")
                 continue
 
-            self.workflows.append(Workflow(i, name, steps))
+            self._workflows.append(Workflow(i, name, steps))
 
         return OrchestratorErrorCodes.OK
 
@@ -201,9 +201,9 @@ class MyOrchestrator(BaseOrchestrator):
 
             match _type:
                 case "FirstNode":
-                    self.nodes.append(FirstNode(_id, name))
+                    self._nodes.append(FirstNode(_id, name))
                 case "SecondNode":
-                    self.nodes.append(SecondNode(_id, name))
+                    self._nodes.append(SecondNode(_id, name))
         return OrchestratorErrorCodes.OK
 ```
 
