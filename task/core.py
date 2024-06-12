@@ -22,7 +22,6 @@ class Task:
         self._state = TaskState.PENDING
         self._stop_flag = False
         self._current_step = -1
-        self._db = DatabaseConnector()
         self._pause_event = threading.Event()
         self._pause_condition = threading.Condition()
 
@@ -49,18 +48,18 @@ class Task:
         return self._state == TaskState.ERROR
 
     def set_active(self) -> None:
-        DBTask.set_active(self._db, str(self._uuid))
+        DBTask.set_active(DatabaseConnector(), str(self._uuid))
         self._state = TaskState.ACTIVE
 
     def set_pending(self) -> None:
         self._state = TaskState.PENDING
 
     def set_finished(self) -> None:
-        DBTask.set_finished(self._db, str(self._uuid))
+        DBTask.set_finished(DatabaseConnector(), str(self._uuid))
         self._state = TaskState.FINISHED
 
     def set_error(self) -> None:
-        DBTask.set_error(self._db, str(self._uuid))
+        DBTask.set_error(DatabaseConnector(), str(self._uuid))
         self._state = TaskState.ERROR
 
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
@@ -147,9 +146,11 @@ class Task:
         src_node = self._workflow.steps[step_id - 1] if step_id > 0 else None
         dst_node = self._workflow.steps[step_id + 1] if step_id < len(self._workflow.steps) - 1 else None
 
+        db = DatabaseConnector()
+
         self._pre_step_execution(cur_node, src_node, dst_node)
-        DBTask.update_active_step(self._db, str(self._uuid), cur_node.id)
-        status, msg = cur_node.execute(self._db, str(self._uuid), self._workflow.name, src_node, dst_node, self._args)
+        DBTask.update_active_step(db, str(self._uuid), cur_node.id)
+        status, msg = cur_node.execute(db, str(self._uuid), self._workflow.name, src_node, dst_node, self._args)
         self._post_step_execution(status, msg, cur_node, src_node, dst_node)
 
         if status != 0:
