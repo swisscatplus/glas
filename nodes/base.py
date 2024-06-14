@@ -203,10 +203,6 @@ class BaseNode(ABCBaseNode):
     def is_available(self) -> bool:
         return self.state == NodeState.AVAILABLE
 
-    @deprecated("Use set_error instead")
-    def error(self) -> None:
-        self.state = NodeState.ERROR
-
     def set_error(self, message: str = "No Comment"):
         self.state = NodeState.ERROR
         db = DatabaseConnector()

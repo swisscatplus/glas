@@ -30,7 +30,7 @@ class DBNodeCallRecord:
         LEFT JOIN 
             node_call_records c ON n.id = c.node_id
         WHERE
-            n.critical = 0 AND n.static = 0 AND c.timestamp >= DATE_SUB(NOW(), INTERVAL 8 HOUR)
+            c.timestamp >= DATE_SUB(NOW(), INTERVAL 8 HOUR)
         GROUP BY 
             n.id, n.name, c.endpoint;
         """
