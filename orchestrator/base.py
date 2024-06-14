@@ -117,7 +117,7 @@ class BaseOrchestrator(ABC):
         :return: Task found, None otherwise
         """
         for _, task in self._running_tasks:
-            if str(task._uuid) == task_id:
+            if str(task.uuid) == task_id:
                 return task
         return None
 
@@ -249,7 +249,7 @@ class BaseOrchestrator(ABC):
 
         return OrchestratorErrorCodes.OK
 
-    def add_task(self, workflow: Workflow, args: Optional[dict[str, any]] = None) -> None:
+    def add_task(self, workflow: Workflow, args: Optional[dict[str, any]] = None) -> Task:
         """
         Add a task to the orchestrator
 
@@ -260,14 +260,16 @@ class BaseOrchestrator(ABC):
 
         task = Task(workflow, args)
 
-        DBTask.insert(database, str(task._uuid), task._workflow.id)
+        DBTask.insert(database, str(task.uuid), task.workflow.id, args)
         DBWorkflowUsageRecord.insert(database, workflow.id)
 
         task_thread = threading.Thread(
-            name=f"task:{task._workflow.name}", target=task.run, args=(self._remove_finished_task,)
+            name=f"task:{task.workflow.name}", target=task.run, args=(self._remove_finished_task,)
         )
         task_thread.start()
         self._running_tasks.append((task_thread, task))
+
+        return task
 
     def continue_task(self, uuid: str) -> OrchestratorErrorCodes:
         """

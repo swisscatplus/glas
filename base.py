@@ -5,6 +5,7 @@ from fastapi import APIRouter, FastAPI, Response, status, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
+from .database import DBTask, DatabaseConnector, DBWorkflow
 from .logger import LoggingManager
 from .models import *
 from .orchestrator.base import BaseOrchestrator
@@ -97,9 +98,14 @@ class BaseScheduler:
             methods=["PATCH"],
         )
         self.admin_router.add_api_route(
-            "/continue-task",
+            "/task/continue",
             self.continue_task,
             methods=["PATCH"]
+        )
+        self.admin_router.add_api_route(
+            "/task/{task_id}",
+            self.get_task_info,
+            methods=["GET"]
         )
         self.admin_router.add_api_route(
             "/restart-node",
@@ -134,6 +140,18 @@ class BaseScheduler:
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
                 response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
                 return "Task continuation failed"
+
+    def get_task_info(self, task_id: str, response: Response):
+        db = DatabaseConnector()
+        db_task = DBTask.get(db, task_id)
+
+        if db_task is None:
+            response.status_code = status.HTTP_204_NO_CONTENT
+            return
+
+        db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
+
+        return {"task": db_task, "workflow": db_workflow}
 
     def restart_node(self, data: PatchNode, response: Response):
         err_code = self.orchestrator.restart_node(data.name)
@@ -204,5 +222,5 @@ class BaseScheduler:
             response.status_code = status.HTTP_404_NOT_FOUND
             return data
 
-        self.orchestrator.add_task(wf, data.args)
-        return data
+        task = self.orchestrator.add_task(wf, data.args)
+        return task.serialize()

@@ -7,14 +7,14 @@ from typing import Callable, Self, Optional
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
 from ..nodes.base import BaseNode
-from ..nodes.enums import NodeState
+from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
 
 
 class Task:
-    def __init__(self, workflow: Workflow, args: dict[str, any] = None) -> None:
+    def __init__(self, workflow: Workflow, args: dict[str, any] = None):
         self._start_time = datetime.now()
         self._uuid = uuid.uuid4()
         self._workflow = workflow
@@ -33,7 +33,19 @@ class Task:
             current_step=self._current_step,
             state=self._state.name,
             workflow=self._workflow.model_dump(),
+            args=self._args
         )
+
+    @property
+    def uuid(self) -> uuid.UUID:
+        return self._uuid
+
+    @property
+    def workflow(self) -> Workflow:
+        return self._workflow
+
+    def _next(self) -> NodeErrorNextStep:
+        return NodeErrorNextStep.NEXT
 
     def is_active(self) -> bool:
         return self._state == TaskState.ACTIVE
@@ -159,10 +171,15 @@ class Task:
             self._pause_event.set()
 
         with self._pause_condition:
+            has_been_paused = self._pause_event.is_set()
+
             while self._pause_event.is_set():
                 self.logger.warning("waiting for task to continue")
                 self.logger.info(f"Manually move the plate from {cur_node.name} to {dst_node.name}")
                 self._pause_condition.wait()
+
+            if has_been_paused:
+                return self._run(self._current_step + self._next().value)
 
         return self._run(self._current_step + 1)
 

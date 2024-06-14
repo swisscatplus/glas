@@ -123,6 +123,7 @@ CREATE TABLE `tasks` (
   `workflow_id` int(11) NOT NULL,
   `active_step` varchar(255) NULL,
   `task_state_id` int(11) NOT NULL,
+  `args` JSON NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

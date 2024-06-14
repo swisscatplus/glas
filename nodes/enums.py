@@ -7,3 +7,8 @@ class NodeState(Enum):
     RECOVERY = auto()
     OFFLINE = auto()
     ERROR = auto()
+
+
+class NodeErrorNextStep(Enum):
+    SELF = 0
+    NEXT = 1

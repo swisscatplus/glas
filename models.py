@@ -20,6 +20,7 @@ class PatchConfig(BaseModel):
 class PatchTask(BaseModel):
     task_id: str
 
+
 class PatchNode(BaseModel):
     name: str
 

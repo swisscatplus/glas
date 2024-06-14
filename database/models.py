@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -19,8 +21,9 @@ class DBNodeModel(BaseModel):
 class DBTaskModel(BaseModel):
     id: str
     workflow_id: int
-    active_step: int | None
+    active_step: str | None
     task_state_id: int
+    args: Optional[dict]
     created_at: datetime
     updated_at: datetime
 

@@ -18,6 +18,7 @@ class BaseNode(ABCBaseNode):
         self.state = NodeState.AVAILABLE
         self.mu = threading.Lock()
         self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
+        self._task_id = None
 
         DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
 
@@ -115,6 +116,7 @@ class BaseNode(ABCBaseNode):
             if save:
                 LoggingManager.insert_data_sample(task_id, wf_name, "w. acc.", start, time.time())
 
+            self._task_id = task_id
             task_logger = LoggingManager.get_logger(f"task-{task_id}")
             task_logger.debug(f"Executing {self}...")
 
@@ -130,6 +132,7 @@ class BaseNode(ABCBaseNode):
                 self.state = NodeState.ERROR
                 DBNode.update_state(db, self.id, self.state.value)
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
+                self._task_id = None
                 return status, message
 
             self._post_execution(status, message, task_id, wf_name, src, dst, args)
@@ -141,12 +144,14 @@ class BaseNode(ABCBaseNode):
             if save:
                 LoggingManager.insert_data_sample(task_id, wf_name, self.id, start, time.time())
 
+            self._task_id = None
+
             return 0, None
 
     @override
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
-            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable()
+            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable(), task_id=self._task_id
         )
 
     @override

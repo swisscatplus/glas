@@ -1,7 +1,9 @@
+import json
 from datetime import datetime
+from typing import Optional
 
 from .connector import DatabaseConnector
-from .models import TasksStatisticsEntry
+from .models import TasksStatisticsEntry, DBTaskModel
 from ..orchestrator.models import TaskDifference
 
 
@@ -9,12 +11,19 @@ class DBTask:
     __tablename__ = "tasks"
 
     @classmethod
-    def exists(cls, db: DatabaseConnector, uuid: str) -> bool:
-        sql = f"SELECT id FROM {cls.__tablename__} WHERE id = %s"
+    def get(cls, db: DatabaseConnector, uuid: str) -> Optional[DBTaskModel]:
+        sql = f"SELECT * FROM {cls.__tablename__} WHERE id = %s"
         data = (uuid,)
         db.cursor.execute(sql, data)
 
-        return db.cursor.fetchone() is not None
+        entry = db.cursor.fetchone()
+        if entry is not None:
+            return DBTaskModel(**entry)
+        return None
+
+    @classmethod
+    def exists(cls, db: DatabaseConnector, uuid: str) -> bool:
+        return cls.get(db, uuid) is not None
 
     @classmethod
     def purge(cls, db: DatabaseConnector) -> None:
@@ -22,9 +31,9 @@ class DBTask:
         db.cursor.execute(sql)
 
     @classmethod
-    def insert(cls, db: DatabaseConnector, uuid: str, workflow_id: int):
-        sql = f"INSERT INTO {cls.__tablename__}(id, workflow_id, task_state_id) VALUES(%s, %s, 1)"
-        data = (uuid, workflow_id)
+    def insert(cls, db: DatabaseConnector, uuid: str, workflow_id: int, args: Optional[dict[str, any]] = None):
+        sql = f"INSERT INTO {cls.__tablename__}(id, workflow_id, task_state_id, args) VALUES(%s, %s, 1, %s)"
+        data = (uuid, workflow_id, json.dumps(args) if args is not None else None)
         db.cursor.execute(sql, data)
 
     @classmethod
