@@ -44,9 +44,6 @@ class Task:
     def workflow(self) -> Workflow:
         return self._workflow
 
-    def _next(self) -> NodeErrorNextStep:
-        return NodeErrorNextStep.NEXT
-
     def is_active(self) -> bool:
         return self._state == TaskState.ACTIVE
 
@@ -179,7 +176,7 @@ class Task:
                 self._pause_condition.wait()
 
             if has_been_paused:
-                return self._run(self._current_step + self._next().value)
+                return self._run(self._current_step + cur_node._next().value)
 
         return self._run(self._current_step + 1)
 
