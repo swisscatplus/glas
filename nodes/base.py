@@ -7,9 +7,8 @@ from typing_extensions import override
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
 from ..nodes.abc import ABCBaseNode
-from ..nodes.enums import NodeState
+from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..nodes.models import BaseNodeModel
-
 
 class BaseNode(ABCBaseNode):
     def __init__(self, _id: str, name: str) -> None:
@@ -92,6 +91,9 @@ class BaseNode(ABCBaseNode):
         """
         return 0
 
+    def _next(self) -> NodeErrorNextStep:
+        return NodeErrorNextStep.NEXT
+    
     @override
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
                 args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
