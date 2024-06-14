@@ -234,6 +234,7 @@ class MyScheduler(BaseScheduler):
         my_personalized_router = APIRouter(prefix="/my-prefix", tags=["My Personalized tags"])
 
         my_personalized_router.add_api_route("/hello", self.hello_route_handler)
+        self.api.include_router(my_personalized_router)
 
     def hello_route_handler(self):
         return {"message": "Hello World!"}

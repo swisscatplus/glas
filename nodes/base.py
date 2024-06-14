@@ -2,7 +2,7 @@ import threading
 import time
 from typing import Self, Optional
 
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
@@ -127,13 +127,14 @@ class BaseNode(ABCBaseNode):
             # call the implementation specific `_execute` method
             self._pre_execution(task_id, wf_name, src, dst, args)
             status, message, endpoint = self._execute(src, dst, task_id, args)
-            self._post_execution(status, message, task_id, wf_name, src, dst, args)
 
             if status != 0:
                 self.state = NodeState.ERROR
                 DBNode.update_state(db, self.id, self.state.value)
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
                 return status, message
+
+            self._post_execution(status, message, task_id, wf_name, src, dst, args)
 
             DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
