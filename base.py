@@ -9,7 +9,7 @@ from .database import DBTask, DatabaseConnector, DBWorkflow
 from .logger import LoggingManager
 from .models import *
 from .orchestrator.base import BaseOrchestrator
-from .orchestrator.enums import OrchestratorErrorCodes
+from .orchestrator.enums import OrchestratorErrorCodes, OrchestratorState
 
 
 class BaseScheduler:
@@ -86,6 +86,16 @@ class BaseScheduler:
             },
         )
         self.admin_router.add_api_route(
+            "/orchestrator/status",
+            self.orchestrator_status,
+            methods=["GET"],
+            status_code=status.HTTP_204_NO_CONTENT,
+            responses={
+                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online"},
+                status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
+            },
+        )
+        self.admin_router.add_api_route(
             "/stop",
             self.full_stop,
             methods=["DELETE"],
@@ -129,6 +139,14 @@ class BaseScheduler:
             return
 
         self.server.run()  # need to run as last
+
+    def orchestrator_status(self, response: Response):
+        """Get the status of the orchestrator"""
+        if self.orchestrator.state == OrchestratorState.RUNNING:
+            response.status_code = status.HTTP_204_NO_CONTENT
+        else:
+            response.status_code = status.HTTP_410_GONE
+        return
 
     def continue_task(self, data: PatchTask, response: Response):
         err_code = self.orchestrator.continue_task(data.task_id)
