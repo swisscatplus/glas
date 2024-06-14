@@ -20,6 +20,8 @@ class BaseNode(ABCBaseNode):
         self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
         self._task_id = None
 
+        if not self._is_reachable():
+            self.set_error("Node Unreachable")
         DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
 
     def __repr__(self) -> str:
