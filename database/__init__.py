@@ -1,3 +1,8 @@
+"""
+This module initializes the database workflow package, which includes various components for managing database
+connections, nodes, properties, steps, tasks, workflows, and usage records.
+"""
+
 from .connector import DatabaseConnector
 from .node import DBNode
 from .node_call_record import DBNodeCallRecord

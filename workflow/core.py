@@ -1,3 +1,7 @@
+"""
+This module contains the class that defines a workflow.
+"""
+
 from typing import Any
 
 from ..nodes.base import BaseNode
@@ -5,6 +9,11 @@ from .models import WorkflowModel
 
 
 class Workflow:
+    """
+    This class defined a workflow as a static entity. When wanting to name a workflow being executed, please refer it as
+    a task.
+    """
+
     def __init__(self, _id: int, name: str, steps: list[BaseNode]) -> None:
         if len(steps) < 2:
             raise ValueError("Steps must at least have 2 nodes")

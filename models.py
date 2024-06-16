@@ -1,15 +1,17 @@
+"""
+This file defines the models used in the GLAS routing system.
+"""
+
+# pylint: disable=missing-class-docstring
+
 from typing import Dict, Optional
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
 
 
-class PostWorkflow(BaseModel):
-    name: str
+class PostTask(BaseModel):
+    workflow_name: str
     args: Optional[Dict] = None
-
-
-class DiagnosticModel(BaseModel):
-    nodes: list[object]
 
 
 class PatchConfig(BaseModel):
@@ -23,16 +25,3 @@ class PatchTask(BaseModel):
 
 class PatchNode(BaseModel):
     name: str
-
-
-class StepModel(BaseModel):
-    name: str
-    position: int
-
-
-class WorkflowsModel(RootModel):
-    root: dict[str, list[StepModel]]
-
-
-class RestartNodeModel(BaseModel):
-    node_id: str

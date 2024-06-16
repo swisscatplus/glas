@@ -1,27 +1,34 @@
+"""
+This module contains all the logging configuration used throughout the project, and the execution graph functions.
+The execution graph can be viewed by running this file directly with your interpreter in the folder containing the file
+`task_execution_logs.csv`.
+"""
+
 from __future__ import annotations
 
 import csv
 import os
 import sys
+from threading import Lock
 
 import loguru
 import matplotlib
 import matplotlib.pyplot as plt
 from loguru import logger
 from matplotlib.colors import ListedColormap
-from threading import Lock
 
 COLLECTION_FILE = "./task_execution_logs.csv"
 
 
 def _visualize():
+    # pylint: disable=R0914
     font = {'weight': 'semibold',
             'size': 16}
 
     matplotlib.rc('font', **font)
 
     data = []
-    with open(COLLECTION_FILE, "r", newline="") as file:
+    with open(COLLECTION_FILE, "r", newline="", encoding="utf-8") as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             data.append(row)
@@ -38,11 +45,8 @@ def _visualize():
         start_time = float(parts[3])
         end_time = float(parts[4])
 
-        if end_time > latest:
-            latest = end_time
-
-        if start_time < earliest:
-            earliest = start_time
+        latest = max(latest, end_time)
+        earliest = min(earliest, start_time)
 
         if test_name not in test_actions:
             test_actions[test_name] = []
@@ -54,7 +58,7 @@ def _visualize():
     time_range = latest - earliest
 
     # Create the flame chart using Matplotlib
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     u_nodes = list(set(u_nodes))
     n = len(u_nodes)
@@ -72,14 +76,14 @@ def _visualize():
             adjusted_start = start - earliest
             adjusted_end = end - earliest
 
-            bar = ax.barh(
+            exec_block = ax.barh(
                 test_name, adjusted_end - adjusted_start, left=adjusted_start, color=action_colors.get(action, "black")
             )[0]
-            node_names[bar] = action
+            node_names[exec_block] = action
 
     for c in ax.containers:
-        bar = c[0]
-        ax.bar_label(c, labels=[node_names[bar]], label_type="center")
+        exec_block = c[0]
+        ax.bar_label(c, labels=[node_names[exec_block]], label_type="center")
 
     # Set x-axis limits
     ax.set_xlim(0, time_range)
@@ -101,6 +105,7 @@ def init_collection() -> None:
 
 
 class SingletonMeta(type):
+    """Singleton metaclass"""
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -139,11 +144,11 @@ class LoggingManager(metaclass=SingletonMeta):
             logger.add("scheduler.log", format=fmt, level=log_lvl, rotation="10 MB")
 
     @classmethod
-    def insert_data_sample(cls, task_id: str, wf_name: str, id: str, start: float, end: float) -> None:
+    def insert_data_sample(cls, task_id: str, wf_name: str, _id: str, start: float, end: float) -> None:
         with cls.mu:
-            with open(COLLECTION_FILE, "a+", newline="") as file:
+            with open(COLLECTION_FILE, "a+", newline="", encoding="utf-8") as file:
                 csv_writer = csv.writer(file)
-                csv_writer.writerow([task_id, wf_name, id, start, end])
+                csv_writer.writerow([task_id, wf_name, _id, start, end])
 
     @classmethod
     def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:

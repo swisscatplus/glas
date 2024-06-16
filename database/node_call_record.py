@@ -1,8 +1,13 @@
+"""
+This module contains the class used to interact with the `node_call_records` table in the database.
+"""
+
 from .connector import DatabaseConnector
 from .models import DBNodeCallRecordModel
 
 
 class DBNodeCallRecord:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "node_call_records"
 
     @classmethod

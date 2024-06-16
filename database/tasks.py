@@ -1,3 +1,7 @@
+"""
+This module contains the class used to interact with the `tasks` table in the database.
+"""
+
 import json
 from datetime import datetime
 from typing import Optional
@@ -8,6 +12,7 @@ from ..orchestrator.models import TaskDifference
 
 
 class DBTask:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "tasks"
 
     @classmethod

@@ -1,3 +1,7 @@
+"""
+Arguments parser for GLAS.
+"""
+
 import argparse
 
 
@@ -41,4 +45,3 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
 
     return parser.parse_args()
-# type: ignore

@@ -1,5 +1,10 @@
+"""
+This module contains the abstract definition of a node. The BaseNode implements this abstract class for a common
+execution behavior across the project.
+"""
+
 from abc import ABC, abstractmethod
-from typing import Self, Optional
+from typing import Self
 
 from ..database import DatabaseConnector
 from ..nodes.models import BaseNodeModel
@@ -24,7 +29,6 @@ class ABCBaseNode(ABC):
         :param args: Execution arguments
         :return: The error code and optional message
         """
-        ...
 
     @abstractmethod
     def serialize(self) -> BaseNodeModel:
@@ -33,7 +37,6 @@ class ABCBaseNode(ABC):
 
         :return: The serialized node
         """
-        ...
 
     @abstractmethod
     def is_usable(self) -> bool:
@@ -42,7 +45,6 @@ class ABCBaseNode(ABC):
 
         :return: True if the node is usable, false otherwise
         """
-        ...
 
     @abstractmethod
     def save_properties(self, db: DatabaseConnector) -> None:
@@ -51,4 +53,3 @@ class ABCBaseNode(ABC):
 
         :param db: Database connector
         """
-        ...

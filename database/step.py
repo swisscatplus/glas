@@ -1,7 +1,12 @@
+"""
+This module contains the class used to interact with the `steps` table in the database.
+"""
+
 from .connector import DatabaseConnector
 
 
 class DBStep:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "steps"
 
     @classmethod

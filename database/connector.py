@@ -1,10 +1,20 @@
+"""
+This module provides functionality for connecting to the database.
+"""
+
 import os
 
-import mysql.connector as connector
+from mysql import connector
 import mysql.connector.errorcode
 
 
 class DatabaseConnector:
+    """
+    Database Connector class needed when executing a database query. Prefer using a new connection whenever possible to
+    avoid having pending transactions.
+
+    For example, create a new connection for every single route you have defined in the scheduler.
+    """
     def __init__(self) -> None:
         try:
             self.conn = connector.connect(
@@ -25,6 +35,6 @@ class DatabaseConnector:
 
         try:
             self.conn.ping()
-        except:
+        except connector.InterfaceError:
             return False
         return True

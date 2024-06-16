@@ -1,7 +1,12 @@
+"""
+This module contains the class used to interact with the `workflow_usage_records` table in the database.
+"""
+
 from .connector import DatabaseConnector
 
 
 class DBWorkflowUsageRecord:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "workflow_usage_records"
 
     @classmethod

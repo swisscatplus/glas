@@ -1,3 +1,7 @@
+"""
+This module contains the base orchestrator used by the base scheduler in order to manager nodes and tasks.
+"""
+
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, IO, BinaryIO
@@ -12,6 +16,11 @@ from ..workflow.core import Workflow
 
 
 class BaseOrchestrator(ABC):
+    """
+    Base orchestrator class which need to be extended to be used. The `_load_nodes` and `_load_workflows` methods
+    must be implemented to populate the nodes and workflows lists.
+    """
+
     def __init__(self, nodes_path: str, workflows_path: str, emulate: bool = False) -> None:
         self.logger = LoggingManager.get_logger("orchestrator", app="Orchestrator")
         self._emulate = emulate
@@ -55,7 +64,6 @@ class BaseOrchestrator(ABC):
         :param file: Configuration file
         :return: Orchestrator error code
         """
-        ...
 
     @abstractmethod
     def _load_nodes(self, file: IO) -> OrchestratorErrorCodes:
@@ -65,7 +73,6 @@ class BaseOrchestrator(ABC):
         :param file: Configuration file
         :return: Orchestrator error code
         """
-        ...
 
     def register_stop_callback(self, callback: Callable) -> None:
         """
@@ -146,6 +153,7 @@ class BaseOrchestrator(ABC):
         :param workflows_config: Workflows configuration
         :return: Orchestrator error code
         """
+        # pylint: disable=consider-using-with
         if nodes_config is None:
             nodes_config = open(self._nodes_path, "rb")
         if workflows_config is None:
@@ -155,6 +163,8 @@ class BaseOrchestrator(ABC):
         self._nodes.clear()
         if (err_code := self._load_nodes(nodes_config)) != OrchestratorErrorCodes.OK:
             self._set_error(f"nodes config file not found: {nodes_config}")
+            nodes_config.close()
+            workflows_config.close()
             return err_code
 
         if len(self._nodes) == 0:
@@ -176,12 +186,17 @@ class BaseOrchestrator(ABC):
                     message = f"workflows config file incorrect: {workflows_config}"
 
             self._set_error(message)
+            nodes_config.close()
+            workflows_config.close()
             return err_code
 
         if len(self._workflows) == 0:
             self.logger.error("no workflows found")
         else:
             self.logger.success(f"successfully loaded {len(self._workflows)} workflows")
+
+        nodes_config.close()
+        workflows_config.close()
 
         return OrchestratorErrorCodes.OK
 
@@ -303,8 +318,8 @@ class BaseOrchestrator(ABC):
             return OrchestratorErrorCodes.CONTENT_NOT_FOUND
 
         self.logger.info(f"Restarting node {name}")
-        if node.restart() == 0:
-            return OrchestratorErrorCodes.OK
-        else:
+        if node.restart() != 0:
             self.logger.critical(f"Impossible to restart node: {name}")
             return OrchestratorErrorCodes.RESTART_NODE_FAILED
+
+        return OrchestratorErrorCodes.OK

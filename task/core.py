@@ -1,3 +1,7 @@
+"""
+This module contains the class for task execution.
+"""
+
 import errno
 import threading
 import uuid
@@ -7,13 +11,18 @@ from typing import Callable, Self, Optional
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
 from ..nodes.base import BaseNode
-from ..nodes.enums import NodeState, NodeErrorNextStep
+from ..nodes.enums import NodeState
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
 
 
 class Task:
+    """
+    The Task class works as a worker that spawn needs to have the run method spawned a thread to not block the execution
+    of the scheduler itself. When task is self-managed and handles steps (node) execution error.
+    """
+
     def __init__(self, workflow: Workflow, args: dict[str, any] = None):
         self._start_time = datetime.now()
         self._uuid = uuid.uuid4()
@@ -176,7 +185,7 @@ class Task:
                 self._pause_condition.wait()
 
             if has_been_paused:
-                return self._run(self._current_step + cur_node._next().value)
+                return self._run(self._current_step + cur_node.next_node_execution().value)
 
         return self._run(self._current_step + 1)
 

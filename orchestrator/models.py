@@ -1,3 +1,9 @@
+"""
+This module contains the models used as data serialization.
+"""
+
+# pylint: disable=missing-class-docstring
+
 from pydantic import BaseModel
 
 from ..database.models import TasksStatisticsEntry

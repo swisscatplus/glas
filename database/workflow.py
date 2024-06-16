@@ -1,8 +1,13 @@
+"""
+This module contains the class used to interact with the `workflows` table in the database.
+"""
+
 from .connector import DatabaseConnector
 from .models import DBWorkflowModel
 
 
 class DBWorkflow:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "workflows"
 
     @classmethod

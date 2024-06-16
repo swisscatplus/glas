@@ -1,3 +1,8 @@
+"""
+This module contains the base class for all GLAS nodes. The common behavior allows the project to run in a predictable
+manner also allows to have a common logging scheme and basic error handling.
+"""
+
 import threading
 import time
 from typing import Self, Optional
@@ -10,7 +15,13 @@ from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..nodes.models import BaseNodeModel
 
+
 class BaseNode(ABCBaseNode):
+    """
+    Base class for all GLAS nodes. By default, no core execution has been implemented and is left to the developers in
+    the _execute method.
+    """
+
     def __init__(self, _id: str, name: str) -> None:
         self.id = _id
         self.name = name
@@ -37,7 +48,6 @@ class BaseNode(ABCBaseNode):
         :param dst: Destination node
         :param args: Execution arguments
         """
-        pass
 
     def _post_execution(self, status: int, msg: str, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
                         args: Optional[dict[str, any]] = None) -> None:
@@ -52,7 +62,6 @@ class BaseNode(ABCBaseNode):
         :param dst: Destination node
         :param args: Execution arguments
         """
-        pass
 
     def _is_reachable(self) -> bool:
         """
@@ -73,7 +82,6 @@ class BaseNode(ABCBaseNode):
         :param args: Execution arguments
         :return:
         """
-        ...
 
     def _restart(self) -> int:
         """
@@ -91,9 +99,9 @@ class BaseNode(ABCBaseNode):
         """
         return 0
 
-    def _next(self) -> NodeErrorNextStep:
+    def next_node_execution(self) -> NodeErrorNextStep:
         return NodeErrorNextStep.NEXT
-    
+
     @override
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
                 args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
@@ -130,6 +138,7 @@ class BaseNode(ABCBaseNode):
 
             # call the implementation specific `_execute` method
             self._pre_execution(task_id, wf_name, src, dst, args)
+            # pylint: disable=assignment-from-no-return
             status, message, endpoint = self._execute(src, dst, task_id, args)
 
             if status != 0:
@@ -169,7 +178,6 @@ class BaseNode(ABCBaseNode):
 
         :param db: Database connector
         """
-        pass
 
     def restart(self) -> int:
         """

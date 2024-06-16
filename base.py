@@ -1,4 +1,7 @@
-import json
+"""
+This module contains the base scheduler to be used to extend the scheduling behavior wanted by your laboratory.
+"""
+
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Response, status, UploadFile
@@ -7,17 +10,22 @@ from uvicorn import Config, Server
 
 from .database import DBTask, DatabaseConnector, DBWorkflow
 from .logger import LoggingManager
-from .models import *
+from .models import PatchTask, PatchNode, PostTask
 from .orchestrator.base import BaseOrchestrator
 from .orchestrator.enums import OrchestratorErrorCodes, OrchestratorState
 
 
 class BaseScheduler:
+    """
+    The BaseScheduler class contains all the necessary routes and actions needed to run a minimalistic lab scheduler. It
+    can be extended as wanted by following the steps available in the official documentation to add custom behavior.
+    """
+
     def __init__(self, orchestrator: BaseOrchestrator, port: int) -> None:
         self.logger = None
 
         @asynccontextmanager
-        async def lifespan(app: FastAPI):
+        async def lifespan(_app: FastAPI):
             yield
             self.orchestrator.stop()
 
@@ -91,7 +99,7 @@ class BaseScheduler:
             methods=["GET"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
-                status.HTTP_204_NO_CONTENT: {"description": "Ocestrator is online"},
+                status.HTTP_204_NO_CONTENT: {"description": "Orchestrator is online"},
                 status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
             },
         )
@@ -103,7 +111,7 @@ class BaseScheduler:
             responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
         )
         self.admin_router.add_api_route(
-            "/reload-config",
+            "/config/reload",
             self.reload_config,
             methods=["PATCH"],
         )
@@ -118,7 +126,7 @@ class BaseScheduler:
             methods=["GET"]
         )
         self.admin_router.add_api_route(
-            "/restart-node",
+            "/node/restart",
             self.restart_node,
             methods=["PATCH"]
         )
@@ -146,7 +154,6 @@ class BaseScheduler:
             response.status_code = status.HTTP_204_NO_CONTENT
         else:
             response.status_code = status.HTTP_410_GONE
-        return
 
     def continue_task(self, data: PatchTask, response: Response):
         err_code = self.orchestrator.continue_task(data.task_id)
@@ -165,7 +172,7 @@ class BaseScheduler:
 
         if db_task is None:
             response.status_code = status.HTTP_204_NO_CONTENT
-            return
+            return {"task": None, "workflow": None}
 
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
         return {"task": db_task, "workflow": db_workflow}
@@ -187,7 +194,7 @@ class BaseScheduler:
         if len(self.orchestrator.running_tasks) != 0:
             self.logger.info("some tasks are still running, cancelling config reload")
             response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
-            return
+            return {"loaded_workflows": 0, "loaded_nodes": 0}
 
         for node in self.orchestrator.nodes:
             node.shutdown()
@@ -196,7 +203,7 @@ class BaseScheduler:
             self.logger.error(f"Failed to load config: {err_code}")
             response.status_code = status.HTTP_201_CREATED
         else:
-            self.logger.success(f"config reloaded")
+            self.logger.success("config reloaded")
 
         return {"loaded_workflows": len(self.orchestrator.workflows), "loaded_nodes": len(self.orchestrator.nodes)}
 
@@ -206,12 +213,10 @@ class BaseScheduler:
 
         if self.orchestrator.stop() != OrchestratorErrorCodes.OK:
             response.status_code = status.HTTP_409_CONFLICT
-        return
 
     def full_stop(self):
         """Stop the orchestrator with the scheduler. Only happens if there is a problem with the scheduler itself."""
         self.server.should_exit = True
-        return
 
     def start_orchestrator(self, response: Response):
         """Start the orchestrator"""
@@ -219,21 +224,20 @@ class BaseScheduler:
 
         if self.orchestrator.start() != OrchestratorErrorCodes.OK:
             response.status_code = status.HTTP_409_CONFLICT
-        return
 
     def get_running(self):
         """Retrieve all the running task."""
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return running_workflows
 
-    def lab_add_task(self, data: PostWorkflow, response: Response):
+    def lab_add_task(self, data: PostTask, response: Response):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
             self.logger.error("The orchestrator is not running")
             response.status_code = status.HTTP_418_IM_A_TEAPOT
-            return
+            return None
 
-        wf = self.orchestrator.get_workflow_by_name(data.name)
+        wf = self.orchestrator.get_workflow_by_name(data.workflow_name)
 
         if wf is None:
             response.status_code = status.HTTP_404_NOT_FOUND

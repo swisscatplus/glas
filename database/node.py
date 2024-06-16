@@ -1,3 +1,7 @@
+"""
+This module contains the class used to interact with the `nodes` table in the database.
+"""
+
 from datetime import datetime
 
 from .connector import DatabaseConnector
@@ -5,6 +9,7 @@ from .models import DBNodeModel
 
 
 class DBNode:
+    # pylint: disable=missing-class-docstring
     __tablename__ = "nodes"
 
     @classmethod

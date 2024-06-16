@@ -1,7 +1,14 @@
+"""
+This module contains all the models mapping to the database tables. All the models are prefixed with `DB` to not confuse
+with the models used in GLAS.
+"""
+
+# pylint: disable=missing-class-docstring
+
 from typing import Optional
 
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel
 
 
 class DBNodePropertyModel(BaseModel):
