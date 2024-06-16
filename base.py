@@ -168,7 +168,6 @@ class BaseScheduler:
             return
 
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
-
         return {"task": db_task, "workflow": db_workflow}
 
     def restart_node(self, data: PatchNode, response: Response):

@@ -18,6 +18,7 @@ class DBTask:
 
         entry = db.cursor.fetchone()
         if entry is not None:
+            entry["args"] = json.loads(entry["args"]) if entry["args"] else None
             return DBTaskModel(**entry)
         return None
 
