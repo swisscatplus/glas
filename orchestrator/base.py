@@ -5,6 +5,7 @@ This module contains the base orchestrator used by the base scheduler in order t
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, IO, BinaryIO
+import requests
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
@@ -115,6 +116,8 @@ class BaseOrchestrator(ABC):
         """
         with self._running_mutex:
             self._running_tasks.remove((task_thread, task))
+
+        requests.post("http://128.178.172.156:8000/task/completed")
 
     def get_task_by_id(self, task_id: str) -> Optional[Task]:
         """
