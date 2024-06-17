@@ -117,7 +117,7 @@ class BaseOrchestrator(ABC):
         with self._running_mutex:
             self._running_tasks.remove((task_thread, task))
 
-        requests.post("http://128.178.172.156:8000/task/completed")
+        requests.post(f"http://128.178.172.156:8000/task/completed/{str(task.uuid)}")
 
     def get_task_by_id(self, task_id: str) -> Optional[Task]:
         """
