@@ -308,21 +308,21 @@ class BaseOrchestrator(ABC):
 
         return OrchestratorErrorCodes.OK
 
-    def restart_node(self, name: str) -> OrchestratorErrorCodes:
+    def restart_node(self, node_id: str) -> OrchestratorErrorCodes:
         """
         Restart a node
 
-        :param name: Name of the node to restart
+        :param node_id: ID of the node to restart
         :return: Orchestrator error code
         """
-        node = next((n for n in self._nodes if n.name == name), None)
+        node = next((n for n in self._nodes if n.id == node_id), None)
 
         if node is None:
             return OrchestratorErrorCodes.CONTENT_NOT_FOUND
 
-        self.logger.info(f"Restarting node {name}")
+        self.logger.info(f"Restarting node {node_id}")
         if node.restart() != 0:
-            self.logger.critical(f"Impossible to restart node: {name}")
+            self.logger.critical(f"Impossible to restart node: {node_id}")
             return OrchestratorErrorCodes.RESTART_NODE_FAILED
 
         return OrchestratorErrorCodes.OK

@@ -24,4 +24,4 @@ class PatchTask(BaseModel):
 
 
 class PatchNode(BaseModel):
-    name: str
+    node_id: str

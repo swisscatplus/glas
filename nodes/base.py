@@ -30,8 +30,6 @@ class BaseNode(ABCBaseNode):
         self.logger = LoggingManager.get_logger(self.id, app=f"Node {self.name}")
         self._task_id = None
 
-        if not self._is_reachable():
-            self.set_error("Node Unreachable")
         DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
 
     def __repr__(self) -> str:
@@ -63,7 +61,7 @@ class BaseNode(ABCBaseNode):
         :param args: Execution arguments
         """
 
-    def _is_reachable(self) -> bool:
+    def is_reachable(self) -> bool:
         """
         Node specific implementation of the reachability test
 
@@ -164,12 +162,12 @@ class BaseNode(ABCBaseNode):
     @override
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
-            id=self.id, name=self.name, status=self.state.name, online=self._is_reachable(), task_id=self._task_id
+            id=self.id, name=self.name, status=self.state.name, online=self.is_reachable(), task_id=self._task_id
         )
 
     @override
     def is_usable(self) -> bool:
-        return self._is_reachable() and not self.is_error()
+        return self.is_reachable() and not self.is_error()
 
     @override
     def save_properties(self, db: DatabaseConnector) -> None:

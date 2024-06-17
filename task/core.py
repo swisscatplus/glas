@@ -87,9 +87,11 @@ class Task:
         :return: A tuple of a boolean if any unreachable nodes were found and the list of those unreachable nodes
         """
         # check the reachability of all future nodes
-        unreachable_steps = filter(lambda step: not step.is_usable(), self._workflow.steps[self._current_step:])
+        unreachable_steps = filter(lambda step: not step.is_reachable(), self._workflow.steps[self._current_step:])
+        print(unreachable_steps)
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
-        return any(unreachable_ids), unreachable_ids
+        print(unreachable_ids)
+        return len(unreachable_ids) > 0, unreachable_ids
 
     def stop(self) -> None:
         self._stop_flag = True
@@ -131,8 +133,11 @@ class Task:
         unreachable_node, unreachable_ids = self.any_unreachable_node()
         if unreachable_node:
             self.set_error()
-            self.logger.error("unreachable steps:", ",".join(unreachable_ids))
+            self.logger.error(f"unreachable steps: {','.join(unreachable_ids)}")
             return errno.EHOSTUNREACH
+
+        if self.is_error():
+            return 1
 
         # stop the task execution when last node reached
         if step_id >= len(self._workflow.steps):

@@ -178,7 +178,7 @@ class BaseScheduler:
         return {"task": db_task, "workflow": db_workflow}
 
     def restart_node(self, data: PatchNode, response: Response):
-        err_code = self.orchestrator.restart_node(data.name)
+        err_code = self.orchestrator.restart_node(data.node_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
