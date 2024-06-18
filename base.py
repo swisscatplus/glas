@@ -52,6 +52,7 @@ class BaseScheduler:
         self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"])
         self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"])
         self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"])
+        self.node_router = APIRouter(prefix="/node", tags=["GLAS Node"])
 
         self._hmac_excluded_routes = ["/docs", "/openapi.json"]
 
@@ -90,8 +91,10 @@ class BaseScheduler:
         self.task_router.add_api_route("/", self.lab_add_task, methods=["POST"])
         self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
         self.task_router.add_api_route("/continue", self.continue_task, methods=["PATCH"])
-        self.task_router.add_api_route("/restart", self.restart_node, methods=["PATCH"])
         self.task_router.add_api_route("/running", self.get_running, methods=["GET"])
+
+    def init_node_routes(self) -> None:
+        self.node_router.add_api_route("/restart", self.restart_node, methods=["PATCH"])
 
     def init_orchestrator_routes(self) -> None:
         self.orchestrator_router.add_api_route(
