@@ -68,7 +68,7 @@ class BaseScheduler:
         self.init_task_routes()
         self._extends_orchestrator_routes()
         self._extends_task_routes()
-        
+
         self.init_config_routes()
         self.init_node_routes()
 
@@ -143,7 +143,7 @@ class BaseScheduler:
             return await call_next(request)
 
         signature = request.headers.get("X-Signature")
-        body = await request.body()
+        body = await request.body() if "multipart/form-data" not in request.headers.get("Content-Type") else b""
         path = request.url.path
         expected_signature = self._hmac_generate_signature(path, body)
 
