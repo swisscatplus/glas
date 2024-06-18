@@ -13,7 +13,7 @@ from uvicorn import Config, Server
 
 from .database import DBTask, DatabaseConnector, DBWorkflow
 from .logger import LoggingManager
-from .models import PatchTask, PatchNode, PostTask
+from .models import PatchTask, PostTask
 from .orchestrator.base import BaseOrchestrator
 from .orchestrator.enums import OrchestratorErrorCodes, OrchestratorState
 
@@ -218,8 +218,8 @@ class BaseScheduler:
             self.logger.error(f"Failed to load config: {err_code}")
             return JSONResponse(status_code=status.HTTP_201_CREATED,
                                 content={"loaded_workflows": -1, "loaded_nodes": -1})
-        else:
-            self.logger.success("config reloaded")
+        
+        self.logger.success("config reloaded")
 
         return JSONResponse(content={"loaded_workflows": len(self.orchestrator.workflows),
                                      "loaded_nodes": len(self.orchestrator.nodes)})
