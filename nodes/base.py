@@ -7,8 +7,6 @@ import threading
 import time
 from typing import Self, Optional
 
-from typing_extensions import override
-
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
 from ..nodes.abc import ABCBaseNode
@@ -100,7 +98,6 @@ class BaseNode(ABCBaseNode):
     def next_node_execution(self) -> NodeErrorNextStep:
         return NodeErrorNextStep.NEXT
 
-    @override
     def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
                 args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
         """
@@ -159,17 +156,14 @@ class BaseNode(ABCBaseNode):
 
             return 0, None
 
-    @override
     def serialize(self) -> BaseNodeModel:
         return BaseNodeModel(
             id=self.id, name=self.name, status=self.state.name, online=self.is_reachable(), task_id=self._task_id
         )
 
-    @override
     def is_usable(self) -> bool:
         return self.is_reachable() and not self.is_error()
 
-    @override
     def save_properties(self, db: DatabaseConnector) -> None:
         """
         Empty saving procedure, left to the user to implement for each child classes

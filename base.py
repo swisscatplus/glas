@@ -97,7 +97,7 @@ class BaseScheduler:
         self.task_router.add_api_route("/running", self.get_running, methods=["GET"])
 
     def init_node_routes(self) -> None:
-        self.node_router.add_api_route("/restart", self.restart_node, methods=["PATCH"])
+        self.node_router.add_api_route("/restart/{node_id}", self.restart_node, methods=["PATCH"])
 
     def init_orchestrator_routes(self) -> None:
         self.orchestrator_router.add_api_route(
@@ -193,8 +193,8 @@ class BaseScheduler:
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
         return {"task": db_task, "workflow": db_workflow}
 
-    def restart_node(self, data: PatchNode):
-        err_code = self.orchestrator.restart_node(data.node_id)
+    def restart_node(self, node_id: str):
+        err_code = self.orchestrator.restart_node(node_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
