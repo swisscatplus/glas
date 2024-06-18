@@ -1,0 +1,277 @@
+{
+	"info": {
+		"_postman_id": "c6ca5985-f10b-4908-84b0-be1aa03bbf5e",
+		"name": "SwissCAT+",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "7381300"
+	},
+	"item": [
+		{
+			"name": "Orchestrator",
+			"item": [
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/orchestrator/status",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"orchestrator",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/orchestrator/start",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"orchestrator",
+								"start"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Stop",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/orchestrator/stop",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"orchestrator",
+								"stop"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "Get",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/task/<your-task-uuid>",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"task",
+								"<your-task-uuid>"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"workflow_name\": \"<your-workflow-name>\",\n    \"args\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/task/",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"task",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Continue",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/task/continue/<your-task-uuid>",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"task",
+								"continue",
+								"<your-task-uuid>"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Running",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/task/running",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"task",
+								"running"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Nodes",
+			"item": [
+				{
+					"name": "Restart",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/node/restart/<your-node-id>",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"node",
+								"restart",
+								"<your-node-id>"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Config",
+			"item": [
+				{
+					"name": "Reload",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "files",
+									"type": "file",
+									"src": "/home/toguy/dev/epfl/robot-scheduler/config/dev/nodes.json"
+								},
+								{
+									"key": "files",
+									"type": "file",
+									"src": "/home/toguy/dev/epfl/robot-scheduler/config/dev/workflows.json"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{url}}/config/reload",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"config",
+								"reload"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"const key = pm.variables.get('hmac_secret');",
+					"",
+					"function computeHashHex(message, key_hex) {",
+					"    return CryptoJS.HmacSHA256(message, CryptoJS.enc.Hex.parse(key_hex)).toString(CryptoJS.enc.Hex);",
+					"}",
+					"",
+					"function toHexBinary(input) {",
+					"    return CryptoJS.enc.Hex.stringify(input);",
+					"}",
+					"",
+					"function toUTF8Encode(input) {",
+					"    return CryptoJS.enc.Utf8.parse(input)",
+					"}",
+					"",
+					"function generateSignature(path, body) {",
+					"    console.log(body)",
+					"    const body_bytes = toUTF8Encode(body === undefined ? \"\" : body)",
+					"    const message = toUTF8Encode(path).concat(body_bytes)",
+					"    const secret = toHexBinary(toUTF8Encode(key))",
+					"    return computeHashHex(message, secret)",
+					"}",
+					"",
+					"pm.request.headers.add({",
+					"    key: 'X-Signature',",
+					"    value: generateSignature(pm.request.url.getPath(), pm.request.body.raw)",
+					"});"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "url",
+			"value": "http://127.0.0.1:3000",
+			"type": "string"
+		},
+		{
+			"key": "hmac_secret",
+			"value": "Super2019",
+			"type": "string"
+		}
+	]
+}
