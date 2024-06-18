@@ -185,7 +185,7 @@ class BaseScheduler:
             return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"task": None, "workflow": None})
 
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
-        return JSONResponse(content={"task": db_task, "workflow": db_workflow})
+        return {"task": db_task, "workflow": db_workflow}
 
     def restart_node(self, data: PatchNode):
         err_code = self.orchestrator.restart_node(data.node_id)
