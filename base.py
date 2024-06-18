@@ -218,7 +218,7 @@ class BaseScheduler:
             self.logger.error(f"Failed to load config: {err_code}")
             return JSONResponse(status_code=status.HTTP_201_CREATED,
                                 content={"loaded_workflows": -1, "loaded_nodes": -1})
-        
+
         self.logger.success("config reloaded")
 
         return JSONResponse(content={"loaded_workflows": len(self.orchestrator.workflows),
