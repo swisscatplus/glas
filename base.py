@@ -1,10 +1,13 @@
 """
 This module contains the base scheduler to be used to extend the scheduling behavior wanted by your laboratory.
 """
-
+import hashlib
+import hmac
+import os
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI, Response, status, UploadFile
+from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
@@ -37,13 +40,20 @@ class BaseScheduler:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        self.api.middleware("http")(self._hmac_middleware)
+
+        self.logger = LoggingManager.get_logger("glas", app="GLAS")
         self.orchestrator = orchestrator
 
         self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
+        self._secret = os.getenv("SECRET").encode("utf-8")
 
-        self.admin_router = APIRouter(prefix="/admin", tags=["Robot Scheduler Administration"])
-        self.lab_router = APIRouter(prefix="/lab", tags=["Lab Scheduler"])
+        self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"])
+        self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"])
+        self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"])
+
+        self._hmac_excluded_routes = ["/docs", "/openapi.json"]
 
         self.init_routes()
         self.init_extra_routes()
@@ -53,28 +63,39 @@ class BaseScheduler:
         self.logger = LoggingManager.get_logger("scheduler", app=logger_name)
 
     def init_routes(self) -> None:
-        self.init_lab_routes()
-        self.init_admin_routes()
-        self._extends_lab_routes()
-        self._extends_admin_routes()
+        self.init_orchestrator_routes()
+        self.init_task_routes()
+        self._extends_orchestrator_routes()
+        self._extends_task_routes()
+        self.init_config_routes()
 
     def include_routers(self) -> None:
-        self.api.include_router(self.admin_router)
-        self.api.include_router(self.lab_router)
+        self.api.include_router(self.task_router)
+        self.api.include_router(self.orchestrator_router)
+        self.api.include_router(self.config_router)
 
     def init_extra_routes(self) -> None:
         pass
 
-    def _extends_lab_routes(self) -> None:
+    def _extends_orchestrator_routes(self) -> None:
         pass
 
-    def _extends_admin_routes(self) -> None:
+    def _extends_task_routes(self) -> None:
         pass
 
-    def init_admin_routes(self) -> None:
-        """TODO Those routes NEED to be account/key/password protected !"""
-        self.admin_router.add_api_route(
-            "/orchestrator/start",
+    def init_config_routes(self) -> None:
+        self.config_router.add_api_route("/reload", self.reload_config, methods=["PATCH"])
+
+    def init_task_routes(self) -> None:
+        self.task_router.add_api_route("/", self.lab_add_task, methods=["POST"])
+        self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
+        self.task_router.add_api_route("/continue", self.continue_task, methods=["PATCH"])
+        self.task_router.add_api_route("/restart", self.restart_node, methods=["PATCH"])
+        self.task_router.add_api_route("/running", self.get_running, methods=["GET"])
+
+    def init_orchestrator_routes(self) -> None:
+        self.orchestrator_router.add_api_route(
+            "/start",
             self.start_orchestrator,
             methods=["POST"],
             status_code=status.HTTP_204_NO_CONTENT,
@@ -83,8 +104,8 @@ class BaseScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already running"},
             },
         )
-        self.admin_router.add_api_route(
-            "/orchestrator/stop",
+        self.orchestrator_router.add_api_route(
+            "/stop",
             self.stop,
             methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
@@ -93,8 +114,8 @@ class BaseScheduler:
                 status.HTTP_409_CONFLICT: {"description": "The orchestrator is already stopped."},
             },
         )
-        self.admin_router.add_api_route(
-            "/orchestrator/status",
+        self.orchestrator_router.add_api_route(
+            "/status",
             self.orchestrator_status,
             methods=["GET"],
             status_code=status.HTTP_204_NO_CONTENT,
@@ -103,41 +124,32 @@ class BaseScheduler:
                 status.HTTP_410_GONE: {"description": "Orchestrator is offline"},
             },
         )
-        self.admin_router.add_api_route(
-            "/stop",
-            self.full_stop,
-            methods=["DELETE"],
-            status_code=status.HTTP_204_NO_CONTENT,
-            responses={status.HTTP_204_NO_CONTENT: {"description": "Everything stopped successfully."}},
-        )
-        self.admin_router.add_api_route(
-            "/config/reload",
-            self.reload_config,
-            methods=["PATCH"],
-        )
-        self.admin_router.add_api_route(
-            "/task/continue",
-            self.continue_task,
-            methods=["PATCH"]
-        )
-        self.admin_router.add_api_route(
-            "/task/{task_id}",
-            self.get_task_info,
-            methods=["GET"]
-        )
-        self.admin_router.add_api_route(
-            "/node/restart",
-            self.restart_node,
-            methods=["PATCH"]
-        )
-        self.admin_router.add_api_route(
-            "/running-tasks",
-            self.get_running,
-            methods=["GET"]
-        )
 
-    def init_lab_routes(self) -> None:
-        self.lab_router.add_api_route("/add", self.lab_add_task, methods=["POST"])
+    def _hmac_generate_signature(self, path: str, body: bytes) -> str:
+        message = path.encode("utf-8") + body
+        return hmac.new(self._secret, message, hashlib.sha256).hexdigest()
+
+    def hmac_exclude_route(self, path: str):
+        self._hmac_excluded_routes.append(path)
+
+    async def _hmac_middleware(self, request: Request, call_next) -> Response:
+        if request.url.path in self._hmac_excluded_routes:
+            return await call_next(request)
+
+        signature = request.headers.get("X-Signature")
+        body = await request.body()
+        path = request.url.path
+        expected_signature = self._hmac_generate_signature(path, body)
+
+        if not signature or expected_signature != signature:
+            self.logger.warning(f"Unauthorized access to {path} form {request.client.host}:{request.client.port}")
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Unauthorized access"}
+            )
+
+        response = await call_next(request)
+        return response
 
     def run(self) -> None:
         self.logger.info(f"started on {self.config.host}:{self.config.port}")
@@ -155,57 +167,56 @@ class BaseScheduler:
         else:
             response.status_code = status.HTTP_410_GONE
 
-    def continue_task(self, data: PatchTask, response: Response):
+    def continue_task(self, data: PatchTask):
         err_code = self.orchestrator.continue_task(data.task_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
-                response.status_code = status.HTTP_404_NOT_FOUND
-                return "Task does not exist"
+                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist")
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
-                response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-                return "Task continuation failed"
+                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                         content="Task continuation failed")
 
-    def get_task_info(self, task_id: str, response: Response):
+    def get_task_info(self, task_id: str):
         db = DatabaseConnector()
         db_task = DBTask.get(db, task_id)
 
         if db_task is None:
-            response.status_code = status.HTTP_204_NO_CONTENT
-            return {"task": None, "workflow": None}
+            return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"task": None, "workflow": None})
 
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
-        return {"task": db_task, "workflow": db_workflow}
+        return JSONResponse(content={"task": db_task, "workflow": db_workflow})
 
-    def restart_node(self, data: PatchNode, response: Response):
+    def restart_node(self, data: PatchNode):
         err_code = self.orchestrator.restart_node(data.node_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
-                response.status_code = status.HTTP_404_NOT_FOUND
-                return "Node does not exist"
+                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist")
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
-                response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-                return "Node restart failed"
+                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                         content="Node restart failed")
 
-    def reload_config(self, files: list[UploadFile], response: Response):
+    def reload_config(self, files: list[UploadFile]):
         self.logger.info("reloading config...")
 
         if len(self.orchestrator.running_tasks) != 0:
             self.logger.info("some tasks are still running, cancelling config reload")
-            response.status_code = status.HTTP_428_PRECONDITION_REQUIRED
-            return {"loaded_workflows": 0, "loaded_nodes": 0}
+            return JSONResponse(status_code=status.HTTP_428_PRECONDITION_REQUIRED,
+                                content={"loaded_workflows": 0, "loaded_nodes": 0})
 
         for node in self.orchestrator.nodes:
             node.shutdown()
 
         if (err_code := self.orchestrator.load_config(files[0].file, files[1].file)) != OrchestratorErrorCodes.OK:
             self.logger.error(f"Failed to load config: {err_code}")
-            response.status_code = status.HTTP_201_CREATED
+            return JSONResponse(status_code=status.HTTP_201_CREATED,
+                                content={"loaded_workflows": -1, "loaded_nodes": -1})
         else:
             self.logger.success("config reloaded")
 
-        return {"loaded_workflows": len(self.orchestrator.workflows), "loaded_nodes": len(self.orchestrator.nodes)}
+        return JSONResponse(content={"loaded_workflows": len(self.orchestrator.workflows),
+                                     "loaded_nodes": len(self.orchestrator.nodes)})
 
     def stop(self, response: Response):
         """Stop the orchestrator."""
@@ -228,20 +239,18 @@ class BaseScheduler:
     def get_running(self):
         """Retrieve all the running task."""
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
-        return running_workflows
+        return JSONResponse(content=running_workflows)
 
-    def lab_add_task(self, data: PostTask, response: Response):
+    def lab_add_task(self, data: PostTask):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
             self.logger.error("The orchestrator is not running")
-            response.status_code = status.HTTP_418_IM_A_TEAPOT
-            return None
+            return JSONResponse(status_code=status.HTTP_418_IM_A_TEAPOT, content={})
 
         wf = self.orchestrator.get_workflow_by_name(data.workflow_name)
 
         if wf is None:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return data
+            return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content=data)
 
         task = self.orchestrator.add_task(wf, data.args)
-        return task.serialize()
+        return JSONResponse(content=task.serialize())
