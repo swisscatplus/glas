@@ -241,16 +241,18 @@ class BaseScheduler:
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
         return JSONResponse(content=running_workflows)
 
-    def lab_add_task(self, data: PostTask):
+    def lab_add_task(self, data: PostTask, response: Response):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
             self.logger.error("The orchestrator is not running")
-            return JSONResponse(status_code=status.HTTP_418_IM_A_TEAPOT, content={})
+            response.status_code = status.HTTP_418_IM_A_TEAPOT
+            return {}
 
         wf = self.orchestrator.get_workflow_by_name(data.workflow_name)
 
         if wf is None:
-            return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content=data)
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return data
 
         task = self.orchestrator.add_task(wf, data.args)
-        return JSONResponse(content=task.serialize())
+        return task.serialize()

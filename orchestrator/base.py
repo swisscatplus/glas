@@ -117,7 +117,10 @@ class BaseOrchestrator(ABC):
         with self._running_mutex:
             self._running_tasks.remove((task_thread, task))
 
-        requests.post(f"http://128.178.172.156:8000/task/completed/{str(task.uuid)}")
+        try:
+            requests.post(f"http://128.178.172.156:8000/task/completed/{str(task.uuid)}", timeout=2)
+        except requests.Timeout:
+            self.logger.error("Lab Scheduler is not reachable")
 
     def get_task_by_id(self, task_id: str) -> Optional[Task]:
         """
