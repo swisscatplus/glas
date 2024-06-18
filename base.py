@@ -68,12 +68,15 @@ class BaseScheduler:
         self.init_task_routes()
         self._extends_orchestrator_routes()
         self._extends_task_routes()
+        
         self.init_config_routes()
+        self.init_node_routes()
 
     def include_routers(self) -> None:
         self.api.include_router(self.task_router)
         self.api.include_router(self.orchestrator_router)
         self.api.include_router(self.config_router)
+        self.api.include_router(self.node_router)
 
     def init_extra_routes(self) -> None:
         pass
