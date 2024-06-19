@@ -54,7 +54,8 @@ class BaseScheduler:
         self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"])
         self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"])
         self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"])
-        self.node_router = APIRouter(prefix="/node", tags=["GLAS Node"])
+        self.node_router = APIRouter(prefix="/node", tags=["GLAS Nodes"])
+        self.workflow_router = APIRouter(prefix="/workflow", tags=["GLAS Workflows"])
 
         self._hmac_excluded_routes = ["/docs", "/openapi.json"]
 
@@ -73,12 +74,14 @@ class BaseScheduler:
 
         self.init_config_routes()
         self.init_node_routes()
+        self.init_workflow_routes()
 
     def include_routers(self) -> None:
         self.api.include_router(self.task_router)
         self.api.include_router(self.orchestrator_router)
         self.api.include_router(self.config_router)
         self.api.include_router(self.node_router)
+        self.api.include_router(self.workflow_router)
 
     def init_extra_routes(self) -> None:
         pass
@@ -91,6 +94,9 @@ class BaseScheduler:
 
     def init_config_routes(self) -> None:
         self.config_router.add_api_route("/reload", self.reload_config, methods=["PATCH"])
+
+    def init_workflow_routes(self) -> None:
+        self.workflow_router.add_api_route("/", self.get_workflows, methods=["GET"])
 
     def init_task_routes(self) -> None:
         # the route ordering matters ! Do NOT put the /{task_id} up in any case !
@@ -189,6 +195,16 @@ class BaseScheduler:
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
                 return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                          content="Task continuation failed")
+
+    def get_workflows(self):
+        """Get all the workflows with their steps."""
+        workflows = self.orchestrator.workflows
+        steps = {}
+
+        for workflow in workflows:
+            steps[workflow.name] = self.orchestrator.get_steps(workflow.id)
+
+        return steps
 
     def get_task_info(self, task_id: str):
         db = DatabaseConnector()

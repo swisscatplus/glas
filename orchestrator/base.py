@@ -8,7 +8,8 @@ from typing import Callable, Optional, IO, BinaryIO
 import requests
 
 from .enums import OrchestratorErrorCodes
-from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord
+from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord, DBWorkflow, DBStep
+from ..database.models import DBWorkflowModel, DBStepModel
 from ..logger import LoggingManager
 from ..nodes.base import BaseNode
 from ..orchestrator.enums import OrchestratorState
@@ -106,6 +107,14 @@ class BaseOrchestrator(ABC):
     @property
     def state(self) -> OrchestratorState:
         return self._state
+
+    @classmethod
+    def get_all_db_workflows(cls) -> list[DBWorkflowModel]:
+        return DBWorkflow.get_all(DatabaseConnector())
+
+    @classmethod
+    def get_steps(cls, workflow_id: int) -> list[DBStepModel]:
+        return DBStep.get_all_for_workflow(DatabaseConnector(), workflow_id)
 
     def _remove_finished_task(self, task_thread: threading.Thread, task: Task):
         """
