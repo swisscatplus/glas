@@ -11,6 +11,25 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class DBLogs(BaseModel):
+    id: int
+    logger_name: str
+    log_level: str
+    module: str
+    function: str
+    line: int
+    message: str
+
+
+class DBExecutionLogs(BaseModel):
+    id: int
+    task_id: int
+    workflow_id: int
+    name: str
+    start: float
+    end: float
+
+
 class DBNodePropertyModel(BaseModel):
     id: int
     node_id: int

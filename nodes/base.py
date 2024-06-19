@@ -98,7 +98,7 @@ class BaseNode(ABCBaseNode):
     def next_node_execution(self) -> NodeErrorNextStep:
         return NodeErrorNextStep.NEXT
 
-    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
+    def execute(self, db: DatabaseConnector, task_id: str, workflow: "Workflow", src: Self, dst: Self,
                 args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
         """
         Common wrapper around the specific `_execute` method.
@@ -109,7 +109,7 @@ class BaseNode(ABCBaseNode):
 
         :param db: Database connector
         :param task_id: Caller task's id
-        :param wf_name: Workflow bind to the task
+        :param workflow: Workflow bind to the task
         :param src: Source node
         :param dst: Destination node
         :param args: Execution arguments
@@ -121,7 +121,7 @@ class BaseNode(ABCBaseNode):
         with self.mu:
             # save the access waiting time
             if save:
-                LoggingManager.insert_data_sample(task_id, wf_name, "w. acc.", start, time.time())
+                LoggingManager.insert_data_sample(task_id, workflow.id, "w. acc.", start, time.time())
 
             self._task_id = task_id
             task_logger = LoggingManager.get_logger(f"task-{task_id}")
@@ -132,7 +132,7 @@ class BaseNode(ABCBaseNode):
             DBNode.update_state(db, self.id, self.state.value)
 
             # call the implementation specific `_execute` method
-            self._pre_execution(task_id, wf_name, src, dst, args)
+            self._pre_execution(task_id, workflow.name, src, dst, args)
             # pylint: disable=assignment-from-no-return
             status, message, endpoint = self._execute(src, dst, task_id, args)
 
@@ -143,14 +143,14 @@ class BaseNode(ABCBaseNode):
                 self._task_id = None
                 return status, message
 
-            self._post_execution(status, message, task_id, wf_name, src, dst, args)
+            self._post_execution(status, message, task_id, workflow.name, src, dst, args)
 
             DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
             DBNode.update_state(db, self.id, self.state.value)
 
             if save:
-                LoggingManager.insert_data_sample(task_id, wf_name, self.id, start, time.time())
+                LoggingManager.insert_data_sample(task_id, workflow.id, self.id, start, time.time())
 
             self._task_id = None
 

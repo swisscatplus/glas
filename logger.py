@@ -17,6 +17,10 @@ import matplotlib.pyplot as plt
 from loguru import logger
 from matplotlib.colors import ListedColormap
 
+from glas.database import DatabaseConnector
+from glas.database.execution_logs import DBExecutionLogs
+from glas.database.logs import DBLogs
+
 COLLECTION_FILE = "./task_execution_logs.csv"
 
 
@@ -133,22 +137,17 @@ class LoggingManager(metaclass=SingletonMeta):
         log_lvl = "DEBUG" if verbose else "INFO"
 
         logger.remove(0)
-        logger.add(
-            sys.stdout,
-            level=log_lvl,
-            format=fmt,
-        )
+        logger.add(sys.stdout, level=log_lvl, format=fmt)
+        logger.add(DBLogs.db_sink, level=log_lvl)
 
         if save_logs:
             init_collection()
             logger.add("scheduler.log", format=fmt, level=log_lvl, rotation="10 MB")
 
     @classmethod
-    def insert_data_sample(cls, task_id: str, wf_name: str, _id: str, start: float, end: float) -> None:
+    def insert_data_sample(cls, task_id: str, wf_id: int, name: str, start: float, end: float) -> None:
         with cls.mu:
-            with open(COLLECTION_FILE, "a+", newline="", encoding="utf-8") as file:
-                csv_writer = csv.writer(file)
-                csv_writer.writerow([task_id, wf_name, _id, start, end])
+            DBExecutionLogs.insert(DatabaseConnector(), task_id, wf_id, name, start, end)
 
     @classmethod
     def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:

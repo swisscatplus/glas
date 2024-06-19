@@ -192,7 +192,7 @@ class Task:
 
         self._pre_step_execution(cur_node, src_node, dst_node)
         DBTask.update_active_step(db, str(self._uuid), cur_node.id)
-        status, msg = cur_node.execute(db, str(self._uuid), self._workflow.name, src_node, dst_node, self._args)
+        status, msg = cur_node.execute(db, str(self._uuid), self._workflow, src_node, dst_node, self._args)
         self._post_step_execution(status, msg, cur_node, src_node, dst_node)
 
         if status != 0:

@@ -207,3 +207,51 @@ CREATE TABLE `workflow_usage_records` (
 
 LOCK TABLES `workflow_usage_records` WRITE;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `logs`
+--
+
+DROP TABLE IF EXISTS `logs`;
+CREATE TABLE `logs` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `timestamp` timestamp NOT NULL,
+    `logger_name` varchar(255) NOT NULL,
+    `log_level` varchar(255) NOT NULL,
+    `module` varchar(255) NOT NULL,
+    `caller` varchar(255) NOT NULL,
+    `line` int(11) NOT NULL,
+    `message` varchar(255) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `logs`
+--
+
+LOCK TABLES `logs` WRITE;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `execution_logs`
+--
+
+DROP TABLE IF EXISTS `execution_logs`;
+CREATE TABLE `execution_logs` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `task_id` char(36) NOT NULL,
+    `workflow_id` int(11) NOT NULL,
+    `name` varchar(255) NOT NULL,
+    `start` decimal(20, 6) NOT NULL,
+    `end` decimal(20, 6) NOT NULL,
+    CONSTRAINT `execution_logs_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`),
+    CONSTRAINT `execution_logs_ibfk_2` FOREIGN KEY (`workflow_id`) REFERENCES `workflows` (`id`),
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `execution_logs`
+--
+
+LOCK TABLES `execution_logs` WRITE;
+UNLOCK TABLES;

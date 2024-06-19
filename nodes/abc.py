@@ -16,14 +16,14 @@ class ABCBaseNode(ABC):
     """
 
     @abstractmethod
-    def execute(self, db: DatabaseConnector, task_id: str, wf_name: str, src: Self, dst: Self,
+    def execute(self, db: DatabaseConnector, task_id: str, workflow: "Workflow", src: Self, dst: Self,
                 args: dict[str, any] = None) -> tuple[int, str | None]:
         """
         Execute the node core code
 
         :param db: Database connector
         :param task_id: Caller task's id
-        :param wf_name: Workflow bind to the task
+        :param workflow: Workflow bind to the task
         :param src: Source node
         :param dst: Destination node
         :param args: Execution arguments
