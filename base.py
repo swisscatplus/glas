@@ -5,10 +5,11 @@ import hashlib
 import hmac
 import os
 from contextlib import asynccontextmanager
+from typing import Callable, Awaitable
 
 from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile
-from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse
 from uvicorn import Config, Server
 
 from .database import DBTask, DatabaseConnector, DBWorkflow
@@ -16,6 +17,7 @@ from .logger import LoggingManager
 from .models import PatchTask, PostTask
 from .orchestrator.base import BaseOrchestrator
 from .orchestrator.enums import OrchestratorErrorCodes, OrchestratorState
+from .task.models import TaskModel
 
 
 class BaseScheduler:
@@ -35,7 +37,7 @@ class BaseScheduler:
         self.api = FastAPI(lifespan=lifespan)
         self.api.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=["*"],  # TODO use value from .env
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -91,10 +93,12 @@ class BaseScheduler:
         self.config_router.add_api_route("/reload", self.reload_config, methods=["PATCH"])
 
     def init_task_routes(self) -> None:
+        # the route ordering matters ! Do NOT put the /{task_id} up in any case !
         self.task_router.add_api_route("/", self.lab_add_task, methods=["POST"])
-        self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
+        self.task_router.add_api_route("/running", self.get_running, methods=["GET"],
+                                       responses={status.HTTP_200_OK: {"model": list[TaskModel]}})
         self.task_router.add_api_route("/continue", self.continue_task, methods=["PATCH"])
-        self.task_router.add_api_route("/running", self.get_running, methods=["GET"])
+        self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
 
     def init_node_routes(self) -> None:
         self.node_router.add_api_route("/restart/{node_id}", self.restart_node, methods=["PATCH"])
@@ -138,12 +142,15 @@ class BaseScheduler:
     def hmac_exclude_route(self, path: str):
         self._hmac_excluded_routes.append(path)
 
-    async def _hmac_middleware(self, request: Request, call_next) -> Response:
-        if request.url.path in self._hmac_excluded_routes:
+    async def _hmac_middleware(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        # The second condition check the method is because of the CORS sending preflight request to let the server know
+        # what headers will be forwarded and to validate the CORS-Policy. Whenever such preflight request is send, just
+        # bypass the HMAC signature check.
+        if request.url.path in self._hmac_excluded_routes or request.method == "OPTIONS":
             return await call_next(request)
 
         signature = request.headers.get("X-Signature")
-        body = await request.body() if "multipart/form-data" not in request.headers.get("Content-Type") else b""
+        body = await request.body() if "multipart/form-data" not in request.headers.get("Content-Type", "") else b""
         path = request.url.path
         expected_signature = self._hmac_generate_signature(path, body)
 
@@ -245,7 +252,7 @@ class BaseScheduler:
     def get_running(self):
         """Retrieve all the running task."""
         running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
-        return JSONResponse(content=running_workflows)
+        return running_workflows
 
     def lab_add_task(self, data: PostTask, response: Response):
         """Add a new task to execute."""
