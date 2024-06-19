@@ -1,7 +1,7 @@
 """
 This module contains the base orchestrator used by the base scheduler in order to manager nodes and tasks.
 """
-
+import os
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, IO, BinaryIO
@@ -118,7 +118,7 @@ class BaseOrchestrator(ABC):
             self._running_tasks.remove((task_thread, task))
 
         try:
-            requests.post(f"http://128.178.172.156:8000/task/completed/{str(task.uuid)}", timeout=2)
+            requests.post(f"{os.getenv('LAB_SCHEDULER_HOST')}/task/completed/{str(task.uuid)}", timeout=2)
         except requests.Timeout:
             self.logger.error("Lab Scheduler is not reachable")
 
