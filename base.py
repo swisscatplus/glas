@@ -148,7 +148,7 @@ class BaseScheduler:
         expected_signature = self._hmac_generate_signature(path, body)
 
         if not signature or expected_signature != signature:
-            self.logger.warning(f"Unauthorized access to {path} form {request.client.host}:{request.client.port}")
+            self.logger.warning(f"Unauthorized access to {path} from {request.client.host}:{request.client.port}")
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Unauthorized access"}
