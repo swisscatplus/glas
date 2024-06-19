@@ -301,6 +301,25 @@ class BaseOrchestrator(ABC):
 
         return task
 
+    def pause_task(self, uuid: str) -> OrchestratorErrorCodes:
+        """
+        Pause a task to let an operator enter without risk in the laboratory
+
+        :param uuid: UUID of the task to pause
+        :return: Orchestrator error code
+        """
+        task = self.get_task_by_id(uuid)
+
+        if task is None:
+            return OrchestratorErrorCodes.CONTENT_NOT_FOUND
+
+        self.logger.info(f"pausing task {uuid}")
+        if task.pause_execution() != 0:
+            self.logger.error(f"Impossible to pause task: {uuid}")
+            return OrchestratorErrorCodes.CANCELLED
+
+        return OrchestratorErrorCodes.OK
+
     def continue_task(self, uuid: str) -> OrchestratorErrorCodes:
         """
         Continue a task that has been stopped due to an error

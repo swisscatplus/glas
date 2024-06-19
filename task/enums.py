@@ -9,5 +9,6 @@ class TaskState(Enum):
     """Enumeration for the task's state"""
     PENDING = auto()
     ACTIVE = auto()
+    PAUSED = auto()
     FINISHED = auto()
     ERROR = auto()

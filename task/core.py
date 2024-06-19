@@ -80,6 +80,10 @@ class Task:
         DBTask.set_error(DatabaseConnector(), str(self._uuid))
         self._state = TaskState.ERROR
 
+    def set_paused(self) -> None:
+        DBTask.set_paused(DatabaseConnector(), str(self._uuid))
+        self._state = TaskState.PAUSED
+
     def any_unreachable_node(self) -> tuple[bool, list[str]]:
         """
         Is there any unreachable nodes in the future steps
@@ -97,6 +101,21 @@ class Task:
         self._stop_flag = True
         self._pause_event.clear()
         self._pause_event.clear()
+
+    def pause_execution(self) -> int:
+        """
+        Pause the execution of the task.
+
+        The pause will only be triggered when the current node finished the action undertaken beforehand.
+
+        :return: Pause status
+        """
+        self.set_paused()
+
+        with self._pause_condition:
+            self._pause_event.set()
+
+        return 0
 
     def continue_execution(self) -> int:
         """

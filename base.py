@@ -103,7 +103,8 @@ class BaseScheduler:
         self.task_router.add_api_route("/", self.lab_add_task, methods=["POST"])
         self.task_router.add_api_route("/running", self.get_running, methods=["GET"],
                                        responses={status.HTTP_200_OK: {"model": list[TaskModel]}})
-        self.task_router.add_api_route("/continue", self.continue_task, methods=["PATCH"])
+        self.task_router.add_api_route("/pause/{task_id}", self.pause_task, methods=["PATCH"])
+        self.task_router.add_api_route("/continue/{task_id}", self.continue_task, methods=["PATCH"])
         self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
 
     def init_node_routes(self) -> None:
@@ -186,8 +187,19 @@ class BaseScheduler:
         else:
             response.status_code = status.HTTP_410_GONE
 
-    def continue_task(self, data: PatchTask):
-        err_code = self.orchestrator.continue_task(data.task_id)
+    def pause_task(self, task_id: str):
+        err_code = self.orchestrator.pause_task(task_id)
+
+        match err_code:
+            case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
+                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist")
+
+            case OrchestratorErrorCodes.CANCELLED:
+                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                         content="Task pause failed")
+
+    def continue_task(self, task_id: str):
+        err_code = self.orchestrator.continue_task(task_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:

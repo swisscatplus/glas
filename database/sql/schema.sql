@@ -85,8 +85,9 @@ LOCK TABLES `task_states` WRITE;
 INSERT INTO `task_states` VALUES
 (1,'PENDING'),
 (2,'ACTIVE'),
-(3,'FINISHED'),
-(4,'ERROR');
+(3, 'PAUSED'),
+(4,'FINISHED'),
+(5,'ERROR');
 UNLOCK TABLES;
 
 --

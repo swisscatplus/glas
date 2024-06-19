@@ -117,12 +117,18 @@ class DBTask:
 
     @classmethod
     def set_error(cls, db: DatabaseConnector, uuid: str) -> None:
-        sql = f"UPDATE {cls.__tablename__} SET task_state_id=4, active_step=NULL, updated_at=%s WHERE id=%s"
+        sql = f"UPDATE {cls.__tablename__} SET task_state_id=5, active_step=NULL, updated_at=%s WHERE id=%s"
         data = (datetime.now(), uuid)
         db.cursor.execute(sql, data)
 
     @classmethod
     def set_finished(cls, db: DatabaseConnector, uuid: str) -> None:
+        sql = f"UPDATE {cls.__tablename__} SET task_state_id=4, active_step=NULL, updated_at=%s WHERE id=%s"
+        data = (datetime.now(), uuid)
+        db.cursor.execute(sql, data)
+
+    @classmethod
+    def set_paused(cls, db: DatabaseConnector, uuid: str) -> None:
         sql = f"UPDATE {cls.__tablename__} SET task_state_id=3, active_step=NULL, updated_at=%s WHERE id=%s"
         data = (datetime.now(), uuid)
         db.cursor.execute(sql, data)
