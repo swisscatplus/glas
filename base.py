@@ -3,7 +3,6 @@ This module contains the base scheduler to be used to extend the scheduling beha
 """
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
 from typing import Callable, Awaitable
 
 from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile, HTTPException, Security
@@ -70,6 +69,8 @@ class BaseScheduler:
 
     def _http_exception_handler(self, request: Request, exc: HTTPException) -> JSONResponse:
         if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+            DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path,
+                                request.method)
             self.logger.warning(f"Unauthorized access to {request.url.path} from {request.client.host}")
             return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content=exc.detail)
 
@@ -84,16 +85,13 @@ class BaseScheduler:
     def _verify_token(self, request: Request, token: str = Security(OAuth2PasswordBearer(tokenUrl="token"))) -> str:
         identifier = jwt.verify_token(token)
 
-        authorized = identifier is not None
-        DBAccessLogs.insert(DatabaseConnector(), request.client.host, authorized, identifier, request.url.path,
-                            request.method)
-
-        if not authorized:
+        if identifier is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Could not validate credentials",
                                 headers={"WWW-Authenticate": "Bearer"})
 
-        self.logger.info(f"{identifier} accessed {request.url.path} at {datetime.now()}")
+        DBAccessLogs.insert(DatabaseConnector(), request.client.host, True, identifier, request.url.path,
+                            request.method)
         return identifier
 
     def bind_logger_name(self, logger_name: str):
