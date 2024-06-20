@@ -78,6 +78,7 @@ class BaseNode(ABCBaseNode):
         :param args: Execution arguments
         :return:
         """
+        return 0, None, None
 
     def _restart(self) -> int:
         """
