@@ -215,7 +215,7 @@ UNLOCK TABLES;
 DROP TABLE IF EXISTS `logs`;
 CREATE TABLE `logs` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
-    `timestamp` timestamp NOT NULL,
+    `timestamp` TIMESTAMP(3) NOT NULL,
     `logger_name` varchar(255) NOT NULL,
     `log_level` varchar(255) NOT NULL,
     `module` varchar(255) NOT NULL,
@@ -268,7 +268,7 @@ CREATE TABLE `access_logs` (
     `identifier` varchar(255) NULL,
     `path` varchar(255) NOT NULL,
     `method` varchar(10) NOT NULL,
-    `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `timestamp` TIMESTAMP(3) NOT NULL DEFAULT NOW(3),
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -11,14 +11,15 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class DBLogs(BaseModel):
+class DBLogsModel(BaseModel):
     id: int
     logger_name: str
     log_level: str
     module: str
-    function: str
+    caller: str
     line: int
     message: str
+    timestamp: datetime
 
 
 class DBExecutionLogs(BaseModel):

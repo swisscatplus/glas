@@ -14,6 +14,7 @@ from uvicorn import Config, Server
 from . import jwt
 from .database import DBTask, DatabaseConnector, DBWorkflow
 from .database.access_logs import DBAccessLogs
+from .database.logs import DBLogs
 from .logger import LoggingManager
 from .models import PostTask
 from .orchestrator.base import BaseOrchestrator
@@ -60,6 +61,7 @@ class BaseScheduler:
         self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"], dependencies=[Security(self._verify_token)])
         self.node_router = APIRouter(prefix="/node", tags=["GLAS Nodes"], dependencies=[Security(self._verify_token)])
         self.workflow_router = APIRouter(prefix="/workflow", tags=["GLAS Workflows"], dependencies=[Security(self._verify_token)])
+        self.log_router = APIRouter(prefix="/logs", tags=["GLAS Logs"], dependencies=[Security(self._verify_token)])
         self.token_router = APIRouter(prefix="/token", tags=["GLAS Tokens"])
         # @formatter:on
 
@@ -107,6 +109,7 @@ class BaseScheduler:
         self.init_node_routes()
         self.init_workflow_routes()
         self.init_token_routes()
+        self.init_log_routes()
 
     def include_routers(self) -> None:
         self.api.include_router(self.task_router)
@@ -115,6 +118,7 @@ class BaseScheduler:
         self.api.include_router(self.node_router)
         self.api.include_router(self.workflow_router)
         self.api.include_router(self.token_router)
+        self.api.include_router(self.log_router)
 
     def init_extra_routes(self) -> None:
         pass
@@ -179,6 +183,9 @@ class BaseScheduler:
         self.token_router.add_api_route("/{identifier}", self._login_token,
                                         dependencies=[Security(self._verify_localhost)])
 
+    def init_log_routes(self) -> None:
+        self.log_router.add_api_route("/", self._logs, dependencies=[Security(self._verify_localhost)])
+
     async def _ip_whitelist_middleware(self, request: Request,
                                        call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         if request.client.host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
@@ -197,6 +204,9 @@ class BaseScheduler:
             return
 
         self.server.run()  # need to run as last
+
+    def _logs(self):
+        return DBLogs.get_all(DatabaseConnector())
 
     def orchestrator_status(self, response: Response):
         """Get the status of the orchestrator"""
