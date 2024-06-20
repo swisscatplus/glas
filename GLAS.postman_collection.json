@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "c6ca5985-f10b-4908-84b0-be1aa03bbf5e",
-		"name": "GLAS",
+		"name": "SwissCAT+",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "7381300"
 	},
@@ -215,7 +215,35 @@
 			]
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{bearer_token}}",
+				"type": "string"
+			}
+		]
+	},
 	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"if (pm.collectionVariables.get(\"bearer_token\") === \"\") {",
+					"    pm.sendRequest({",
+					"        url: `${pm.collectionVariables.get(\"url\")}/token/Postman`",
+					"    }, (err, res) => {",
+					"        if (err === null) {",
+					"            pm.collectionVariables.set(\"bearer_token\", `${res.json().token}`)",
+					"        }",
+					"    })",
+					"}"
+				]
+			}
+		},
 		{
 			"listen": "test",
 			"script": {
@@ -231,6 +259,11 @@
 		{
 			"key": "url",
 			"value": "http://127.0.0.1:3000",
+			"type": "string"
+		},
+		{
+			"key": "bearer_token",
+			"value": "",
 			"type": "string"
 		}
 	]
