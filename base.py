@@ -1,20 +1,22 @@
 """
 This module contains the base scheduler to be used to extend the scheduling behavior wanted by your laboratory.
 """
-import hashlib
-import hmac
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Callable, Awaitable
 
-from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile
+from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.security import OAuth2PasswordBearer
 from uvicorn import Config, Server
 
+from . import jwt
 from .database import DBTask, DatabaseConnector, DBWorkflow
+from .database.access_logs import DBAccessLogs
 from .logger import LoggingManager
-from .models import PatchTask, PostTask
+from .models import PostTask
 from .orchestrator.base import BaseOrchestrator
 from .orchestrator.enums import OrchestratorErrorCodes, OrchestratorState
 from .task.models import TaskModel
@@ -36,13 +38,15 @@ class BaseScheduler:
 
         self.api = FastAPI(lifespan=lifespan)
         self.api.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],  # TODO use value from .env
+            CORSMiddleware,  # type: ignore
+            allow_origins=["*"],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        self.api.middleware("http")(self._hmac_middleware)
+        self.api.middleware("http")(self._ip_whitelist_middleware)
+
+        self.api.add_exception_handler(HTTPException, self._http_exception_handler)  # type: ignore
 
         self.logger = LoggingManager.get_logger("glas", app="GLAS")
         self.orchestrator = orchestrator
@@ -51,17 +55,46 @@ class BaseScheduler:
         self.server = Server(config=self.config)
         self._secret = os.getenv("SECRET").encode("utf-8")
 
-        self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"])
-        self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"])
-        self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"])
-        self.node_router = APIRouter(prefix="/node", tags=["GLAS Nodes"])
-        self.workflow_router = APIRouter(prefix="/workflow", tags=["GLAS Workflows"])
-
-        self._hmac_excluded_routes = ["/docs", "/openapi.json"]
+        # @formatter:off
+        self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"], dependencies=[Security(self._verify_token)])
+        self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"], dependencies=[Security(self._verify_token)])
+        self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"], dependencies=[Security(self._verify_token)])
+        self.node_router = APIRouter(prefix="/node", tags=["GLAS Nodes"], dependencies=[Security(self._verify_token)])
+        self.workflow_router = APIRouter(prefix="/workflow", tags=["GLAS Workflows"], dependencies=[Security(self._verify_token)])
+        self.token_router = APIRouter(prefix="/token", tags=["GLAS Tokens"])
+        # @formatter:on
 
         self.init_routes()
         self.init_extra_routes()
         self.include_routers()
+
+    def _http_exception_handler(self, request: Request, exc: HTTPException) -> JSONResponse:
+        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+            self.logger.warning(f"Unauthorized access to {request.url.path} from {request.client.host}")
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content=exc.detail)
+
+    def _verify_localhost(self, request: Request) -> None:
+        if request.client.host != "127.0.0.1":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only localhost is allowed")
+
+    def _login_token(self, identifier: str):
+        access_token = jwt.create_access_token(data={"sub": identifier})
+        return {"token": access_token}
+
+    def _verify_token(self, request: Request, token: str = Security(OAuth2PasswordBearer(tokenUrl="token"))) -> str:
+        identifier = jwt.verify_token(token)
+
+        authorized = identifier is not None
+        DBAccessLogs.insert(DatabaseConnector(), request.client.host, authorized, identifier, request.url.path,
+                            request.method)
+
+        if not authorized:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Could not validate credentials",
+                                headers={"WWW-Authenticate": "Bearer"})
+
+        self.logger.info(f"{identifier} accessed {request.url.path} at {datetime.now()}")
+        return identifier
 
     def bind_logger_name(self, logger_name: str):
         self.logger = LoggingManager.get_logger("scheduler", app=logger_name)
@@ -75,6 +108,7 @@ class BaseScheduler:
         self.init_config_routes()
         self.init_node_routes()
         self.init_workflow_routes()
+        self.init_token_routes()
 
     def include_routers(self) -> None:
         self.api.include_router(self.task_router)
@@ -82,6 +116,7 @@ class BaseScheduler:
         self.api.include_router(self.config_router)
         self.api.include_router(self.node_router)
         self.api.include_router(self.workflow_router)
+        self.api.include_router(self.token_router)
 
     def init_extra_routes(self) -> None:
         pass
@@ -142,31 +177,16 @@ class BaseScheduler:
             },
         )
 
-    def _hmac_generate_signature(self, path: str, body: bytes) -> str:
-        message = path.encode("utf-8") + body
-        return hmac.new(self._secret, message, hashlib.sha256).hexdigest()
+    def init_token_routes(self) -> None:
+        self.token_router.add_api_route("/{identifier}", self._login_token,
+                                        dependencies=[Security(self._verify_localhost)])
 
-    def hmac_exclude_route(self, path: str):
-        self._hmac_excluded_routes.append(path)
-
-    async def _hmac_middleware(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-        # The second condition check the method is because of the CORS sending preflight request to let the server know
-        # what headers will be forwarded and to validate the CORS-Policy. Whenever such preflight request is send, just
-        # bypass the HMAC signature check.
-        if request.url.path in self._hmac_excluded_routes or request.method == "OPTIONS":
-            return await call_next(request)
-
-        signature = request.headers.get("X-Signature")
-        body = await request.body() if "multipart/form-data" not in request.headers.get("Content-Type", "") else b""
-        path = request.url.path
-        expected_signature = self._hmac_generate_signature(path, body)
-
-        if not signature or expected_signature != signature:
-            self.logger.warning(f"Unauthorized access to {path} from {request.client.host}:{request.client.port}")
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Unauthorized access"}
-            )
+    async def _ip_whitelist_middleware(self, request: Request,
+                                       call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        if request.client.host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
+            self.logger.warning(f"Not allowed ip ({request.client.host}) tried to access {request.url.path}")
+            DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path, request.method)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="IP not allowed")
 
         response = await call_next(request)
         return response

@@ -9,8 +9,11 @@ class DBLogs:
     @classmethod
     def db_sink(cls, message):
         record = message.record
-        cls.insert(DatabaseConnector(), record["time"], record["extra"]["app"], record["level"].name,
-                   record["name"], record["function"], record["line"], record["message"])
+        db = DatabaseConnector()
+
+        if db.cursor is not None:
+            cls.insert(db, record["time"], record["extra"]["app"], record["level"].name,
+                       record["name"], record["function"], record["line"], record["message"])
 
     @classmethod
     def insert(cls, db: DatabaseConnector, timestamp: datetime.datetime, logger_name: str, log_level: str, module: str,

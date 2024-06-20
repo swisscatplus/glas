@@ -217,41 +217,6 @@
 	],
 	"event": [
 		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"exec": [
-					"const key = pm.variables.get('hmac_secret');",
-					"",
-					"function computeHashHex(message, key_hex) {",
-					"    return CryptoJS.HmacSHA256(message, CryptoJS.enc.Hex.parse(key_hex)).toString(CryptoJS.enc.Hex);",
-					"}",
-					"",
-					"function toHexBinary(input) {",
-					"    return CryptoJS.enc.Hex.stringify(input);",
-					"}",
-					"",
-					"function toUTF8Encode(input) {",
-					"    return CryptoJS.enc.Utf8.parse(input)",
-					"}",
-					"",
-					"function generateSignature(path, body) {",
-					"    console.log(body)",
-					"    const body_bytes = toUTF8Encode(body === undefined ? \"\" : body)",
-					"    const message = toUTF8Encode(path).concat(body_bytes)",
-					"    const secret = toHexBinary(toUTF8Encode(key))",
-					"    return computeHashHex(message, secret)",
-					"}",
-					"",
-					"pm.request.headers.add({",
-					"    key: 'X-Signature',",
-					"    value: generateSignature(pm.request.url.getPath(), pm.request.body.raw)",
-					"});"
-				]
-			}
-		},
-		{
 			"listen": "test",
 			"script": {
 				"type": "text/javascript",
@@ -266,11 +231,6 @@
 		{
 			"key": "url",
 			"value": "http://127.0.0.1:3000",
-			"type": "string"
-		},
-		{
-			"key": "hmac_secret",
-			"value": "Super2019",
 			"type": "string"
 		}
 	]

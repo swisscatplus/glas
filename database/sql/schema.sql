@@ -255,3 +255,26 @@ CREATE TABLE `execution_logs` (
 
 LOCK TABLES `execution_logs` WRITE;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `access_logs`
+--
+
+DROP TABLE IF EXISTS `access_logs`;
+CREATE TABLE `access_logs` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `host` varchar(20) NOT NULL,
+    `authorized` boolean NOT NULL,
+    `identifier` varchar(255) NULL,
+    `path` varchar(255) NOT NULL,
+    `method` varchar(10) NOT NULL,
+    `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `access_logs`
+--
+
+LOCK TABLES `access_logs` WRITE;
+UNLOCK TABLES;

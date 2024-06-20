@@ -1,5 +1,3 @@
-import datetime
-
 from glas.database import DatabaseConnector
 
 
