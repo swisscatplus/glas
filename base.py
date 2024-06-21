@@ -191,7 +191,7 @@ class BaseScheduler:
         if request.client.host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
             self.logger.warning(f"Not allowed ip ({request.client.host}) tried to access {request.url.path}")
             DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path, request.method)
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="IP not allowed")
+            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "IP not allowed"})
 
         response = await call_next(request)
         return response
