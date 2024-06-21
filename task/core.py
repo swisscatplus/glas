@@ -92,9 +92,7 @@ class Task:
         """
         # check the reachability of all future nodes
         unreachable_steps = filter(lambda step: not step.is_reachable(), self._workflow.steps[self._current_step:])
-        print(unreachable_steps)
         unreachable_ids = list(map(lambda step: step.id, unreachable_steps))
-        print(unreachable_ids)
         return len(unreachable_ids) > 0, unreachable_ids
 
     def stop(self) -> None:
