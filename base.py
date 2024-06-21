@@ -70,7 +70,7 @@ class BaseScheduler:
         self.include_routers()
 
     def _http_exception_handler(self, request: Request, exc: HTTPException) -> JSONResponse:
-        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+        if exc.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]:
             DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path,
                                 request.method)
             self.logger.warning(f"Unauthorized access to {request.url.path} from {request.client.host}")

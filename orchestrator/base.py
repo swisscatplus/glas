@@ -126,11 +126,6 @@ class BaseOrchestrator(ABC):
         with self._running_mutex:
             self._running_tasks.remove((task_thread, task))
 
-        try:
-            requests.post(f"{os.getenv('LAB_SCHEDULER_HOST')}/task/completed/{str(task.uuid)}", timeout=2)
-        except requests.Timeout:
-            self.logger.error("Lab Scheduler is not reachable")
-
     def get_task_by_id(self, task_id: str) -> Optional[Task]:
         """
         Retrieve a task by its ID
