@@ -5,13 +5,15 @@ manner also allows to have a common logging scheme and basic error handling.
 
 import threading
 import time
-from typing import Self, Optional
+from typing import Self, Optional, TypeVar
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
 from ..nodes.abc import ABCBaseNode
 from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..nodes.models import BaseNodeModel
+
+Workflow = TypeVar("Workflow")
 
 
 class BaseNode(ABCBaseNode):
