@@ -14,6 +14,7 @@ from uvicorn import Config, Server
 from . import jwt
 from .database import DBTask, DatabaseConnector, DBWorkflow
 from .database.access_logs import DBAccessLogs
+from .database.execution_logs import DBExecutionLogs
 from .database.logs import DBLogs
 from .logger import LoggingManager
 from .models import PostTask
@@ -184,7 +185,8 @@ class BaseScheduler:
                                         dependencies=[Security(self._verify_localhost)])
 
     def init_log_routes(self) -> None:
-        self.log_router.add_api_route("/", self._logs, dependencies=[Security(self._verify_localhost)])
+        self.log_router.add_api_route("/", self._logs)
+        self.log_router.add_api_route("/execution", self._get_execution_logs)
 
     async def _ip_whitelist_middleware(self, request: Request,
                                        call_next: Callable[[Request], Awaitable[Response]]) -> Response:
@@ -207,6 +209,21 @@ class BaseScheduler:
 
     def _logs(self):
         return DBLogs.get_all(DatabaseConnector())
+
+    def _get_execution_logs(self):
+        logs = DBExecutionLogs.get(DatabaseConnector())
+        grouped_logs: dict[str, list[dict]] = {}
+
+        db = DatabaseConnector()
+        for log in logs:
+            wf = DBWorkflow.get_by_id(db, log.workflow_id)
+
+            if log.task_id not in grouped_logs:
+                grouped_logs[log.task_id] = []
+
+            grouped_logs[log.task_id].append({"log": log.model_dump(), "wf": wf.model_dump()})
+
+        return grouped_logs
 
     def orchestrator_status(self, response: Response):
         """Get the status of the orchestrator"""

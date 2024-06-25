@@ -22,13 +22,13 @@ class DBLogsModel(BaseModel):
     timestamp: datetime
 
 
-class DBExecutionLogs(BaseModel):
+class DBExecutionLogsModel(BaseModel):
     id: int
-    task_id: int
+    task_id: str
     workflow_id: int
     name: str
-    start: float
-    end: float
+    start: datetime
+    end: datetime
 
 
 class DBNodePropertyModel(BaseModel):

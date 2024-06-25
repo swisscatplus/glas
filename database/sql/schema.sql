@@ -242,8 +242,8 @@ CREATE TABLE `execution_logs` (
     `task_id` char(36) NOT NULL,
     `workflow_id` int(11) NOT NULL,
     `name` varchar(255) NOT NULL,
-    `start` decimal(20, 6) NOT NULL,
-    `end` decimal(20, 6) NOT NULL,
+    `start` TIMESTAMP(3) NOT NULL,
+    `end` TIMESTAMP(3) NOT NULL,
     CONSTRAINT `execution_logs_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`),
     CONSTRAINT `execution_logs_ibfk_2` FOREIGN KEY (`workflow_id`) REFERENCES `workflows` (`id`),
     PRIMARY KEY (`id`)

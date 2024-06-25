@@ -36,7 +36,7 @@ class DBWorkflow:
         sql = f"SELECT * FROM {cls.__tablename__} WHERE id = %s"
         data = (_id,)
         db.cursor.execute(sql, data)
-        return db.cursor.fetchone()
+        return DBWorkflowModel(**db.cursor.fetchone())
 
     @classmethod
     def insert(cls, db: DatabaseConnector, name: str, source_node_id: str, destination_node_id: str):
