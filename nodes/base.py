@@ -223,3 +223,6 @@ class BaseNode(ABCBaseNode):
 
     def set_available(self) -> None:
         self.state = NodeState.AVAILABLE
+
+    def set_in_use(self) -> None:
+        self.state = NodeState.IN_USE
