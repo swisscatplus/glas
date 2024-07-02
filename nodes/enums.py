@@ -12,6 +12,7 @@ class NodeState(Enum):
     RECOVERY = auto()
     OFFLINE = auto()
     ERROR = auto()
+    RESTARTING = auto()
 
 
 class NodeErrorNextStep(Enum):

@@ -181,6 +181,7 @@ class BaseNode(ABCBaseNode):
         :return: Restart status
         """
         self.logger.info("restarting...")
+        self.state = NodeState.RESTARTING
 
         status = self._restart()
 
@@ -188,6 +189,7 @@ class BaseNode(ABCBaseNode):
             self.set_available()
             self.logger.success("restarted successfully")
         else:
+            self.state = NodeState.ERROR
             self.logger.error(f"restart failed: {status}")
 
         DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
