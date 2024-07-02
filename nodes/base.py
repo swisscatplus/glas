@@ -134,8 +134,11 @@ class BaseNode(ABCBaseNode):
             self.state = NodeState.IN_USE
             DBNode.update_state(db, self.id, self.state.value)
 
-            # call the implementation specific `_execute` method
             self._pre_execution(task_id, workflow.name, src, dst, args)
+
+            if self.is_error():
+                return 1, "An error occurred during the pre-execution"
+
             # pylint: disable=assignment-from-no-return
             status, message, endpoint = self._execute(src, dst, task_id, args)
 
