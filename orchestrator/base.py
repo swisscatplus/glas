@@ -137,7 +137,7 @@ class BaseOrchestrator(ABC):
             if str(task.uuid) == task_id:
                 return task
         return None
-    
+
     def get_node_by_id(self, node_id: str) -> Optional[BaseNode]:
         """
         Retrieve a node by its ID
