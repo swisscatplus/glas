@@ -137,6 +137,18 @@ class BaseOrchestrator(ABC):
             if str(task.uuid) == task_id:
                 return task
         return None
+    
+    def get_node_by_id(self, node_id: str) -> Optional[BaseNode]:
+        """
+        Retrieve a node by its ID
+
+        :param node_id: Node id
+        :return: Node found, None otherwise
+        """
+        for node in self.nodes:
+            if node.id == node_id:
+                return node
+        return None
 
     def get_workflow_by_name(self, name: str) -> Optional[Workflow]:
         """
