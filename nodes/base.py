@@ -142,14 +142,14 @@ class BaseNode(ABCBaseNode):
             # pylint: disable=assignment-from-no-return
             status, message, endpoint = self._execute(src, dst, task_id, args)
 
+            self._post_execution(status, message, task_id, workflow.name, src, dst, args)
+
             if status != 0:
                 self.state = NodeState.ERROR
                 DBNode.update_state(db, self.id, self.state.value)
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
                 self._task_id = None
                 return status, message
-
-            self._post_execution(status, message, task_id, workflow.name, src, dst, args)
 
             DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "success")
             self.state = NodeState.AVAILABLE
