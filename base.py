@@ -54,7 +54,6 @@ class BaseScheduler:
 
         self.config = Config(self.api, host="0.0.0.0", port=port, log_level="warning")
         self.server = Server(config=self.config)
-        self._secret = os.getenv("SECRET").encode("utf-8")
 
         # @formatter:off
         self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"], dependencies=[Security(self._verify_token)])

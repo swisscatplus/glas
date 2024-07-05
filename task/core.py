@@ -206,8 +206,6 @@ class Task:
                 self.logger.info(f"Manually move the plate from {cur_node.name} to {dst_node.name}")
                 self._pause_condition.wait()
 
-            self.set_active()
-
             if has_been_paused:
                 return self._run(self._current_step + cur_node.next_node_execution().value)
 
