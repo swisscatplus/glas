@@ -11,11 +11,10 @@ from typing import Callable, Self, Optional
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
 from ..nodes.base import BaseNode
-from ..nodes.enums import NodeState
+from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
-
 
 class Task:
     """
@@ -203,7 +202,11 @@ class Task:
 
             while self._pause_event.is_set():
                 self.logger.warning("waiting for task to continue")
-                self.logger.info(f"Manually move the plate from {cur_node.name} to {dst_node.name}")
+
+                if cur_node.next_node_execution() is NodeErrorNextStep.SELF:
+                    self.logger.info(f"Please check if {cur_node.name} is ready for restart")
+                else:    
+                    self.logger.info(f"Manually move the plate from {cur_node.name} to {dst_node.name}")
                 self._pause_condition.wait()
 
             if has_been_paused:
