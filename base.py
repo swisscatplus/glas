@@ -147,6 +147,7 @@ class BaseScheduler:
 
     def init_node_routes(self) -> None:
         self.node_router.add_api_route("/restart/{node_id}", self.restart_node, methods=["PATCH"])
+        self.node_router.add_api_route("/status/{node_id}", self.get_node_info, methods=["GET"])
 
     def init_orchestrator_routes(self) -> None:
         self.orchestrator_router.add_api_route(
@@ -282,6 +283,13 @@ class BaseScheduler:
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
                 return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                          content="Node restart failed")
+
+    def get_node_info(self, node_id:str):
+        node = self.orchestrator.get_node_by_id(node_id)
+        if node is None:
+            return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist")
+        
+        return node.serialize()
 
     def reload_config(self, files: list[UploadFile]):
         self.logger.info("reloading config...")
