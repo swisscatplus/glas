@@ -10,6 +10,7 @@ import csv
 import os
 import sys
 from threading import Lock
+from typing import Callable, Optional
 
 import loguru
 import matplotlib
@@ -127,27 +128,32 @@ class LoggingManager(metaclass=SingletonMeta):
     """
     loggers: dict[str, loguru.Logger] = {}
     mu = Lock()
+    fmt = ""
 
     def __init__(self, save_logs: bool = True, verbose: bool = False, debug: bool = False):
         if debug:
-            fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
+            LoggingManager.fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>[{extra[app]}] {message}</level>"
         else:
-            fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>[{extra[app]}] {message}</level>"
+            LoggingManager.fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>[{extra[app]}] {message}</level>"
 
         log_lvl = "DEBUG" if verbose else "INFO"
 
         logger.remove(0)
-        logger.add(sys.stdout, level=log_lvl, format=fmt)
+        logger.add(sys.stdout, level=log_lvl, format=LoggingManager.fmt)
         logger.add(DBLogs.db_sink, level=log_lvl)
 
         if save_logs:
             init_collection()
-            logger.add("scheduler.log", format=fmt, level=log_lvl, rotation="10 MB")
+            logger.add("scheduler.log", format=LoggingManager.fmt, level=log_lvl, rotation="10 MB")
 
     @classmethod
     def insert_data_sample(cls, task_id: str, wf_id: int, name: str, start: float, end: float) -> None:
         with cls.mu:
             DBExecutionLogs.insert(DatabaseConnector(), task_id, wf_id, name, start, end)
+
+    @classmethod
+    def add_ink(cls, sink: Callable[[str], None], log_lvl: str = "INFO") -> None:
+        logger.add(sink, format=cls.fmt, level=log_lvl)
 
     @classmethod
     def get_logger(cls, _id: str, **bind_kwargs) -> loguru.Logger:
