@@ -5,7 +5,7 @@ import os
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, IO, BinaryIO
-import requests
+import json
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord, DBWorkflow, DBStep
@@ -57,15 +57,6 @@ class BaseOrchestrator(ABC):
 
         self._stop_callback: Callable[[], None] = lambda: None
         self._start_callback: Callable[[], None] = lambda: None
-
-    @abstractmethod
-    def _load_workflows(self, file: IO) -> OrchestratorErrorCodes:
-        """
-        Parse and store the workflows defined in the file
-
-        :param file: Configuration file
-        :return: Orchestrator error code
-        """
 
     @abstractmethod
     def _load_nodes(self, file: IO) -> OrchestratorErrorCodes:
@@ -167,6 +158,43 @@ class BaseOrchestrator(ABC):
         if message is not None:
             self.logger.error(message)
 
+    def load_workflows(self, file: IO) -> OrchestratorErrorCodes:
+        """Loads workflows from a JSON file.
+
+        It logs errors for missing nodes and skips affected workflows.
+        It ensures database integrity by checking and inserting workflows into the database when necessary.
+
+        Raises:
+            FileNotFoundError: If the specified file path does not exist or is inaccessible.
+            JSONDecodeError: If the file content is not in valid JSON format.
+        """
+        try:
+            workflows_json = json.loads(file.read()).get("workflows", [])
+        except FileNotFoundError:
+            return OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION
+        except json.decoder.JSONDecodeError:
+            return OrchestratorErrorCodes.COULD_NOT_PARSE_CONFIGURATION
+
+        database = DatabaseConnector()
+        for workflow in workflows_json:
+            wf_name = workflow["name"]
+            wf_steps = [self.get_node_by_id(node) for node in workflow["steps"]]
+            if None in wf_steps:
+                self.logger.error(f"Error importing node in workflow '{wf_name}'")
+                return OrchestratorErrorCodes.COULD_NOT_PARSE_CONFIGURATION
+            
+            if not DBWorkflow.exists(database, wf_name):
+                DBWorkflow.insert(database, wf_name, wf_steps[0].id, wf_steps[-1].id)
+
+            db_workflow = DBWorkflow.get_by_name(database, wf_name)
+
+            for pos, step in enumerate(wf_steps):
+                DBStep.insert(database, db_workflow.id, step.id, pos)
+
+            self.workflows.append(Workflow(db_workflow.id, db_workflow.name, wf_steps))
+        
+        return OrchestratorErrorCodes.OK
+
     def load_config(self, nodes_config: BinaryIO = None, workflows_config: BinaryIO = None) -> OrchestratorErrorCodes:
         """
         Clear the already stored nodes and workflows, and load the newly given config
@@ -199,7 +227,7 @@ class BaseOrchestrator(ABC):
 
         # load the workflows
         self._workflows.clear()
-        if (err_code := self._load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
+        if (err_code := self.load_workflows(workflows_config)) != OrchestratorErrorCodes.OK:
             message = None
             match err_code:
                 case OrchestratorErrorCodes.COULD_NOT_FIND_CONFIGURATION:
