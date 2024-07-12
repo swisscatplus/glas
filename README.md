@@ -1,4 +1,4 @@
-from typing import Selffrom typing import Selffrom typing import Dict<a name="readme-top"></a>
+<a name="readme-top"></a>
 <br />
 <div align="center">
   <a href="https://github.com/swisscatplus/task-scheduler">
