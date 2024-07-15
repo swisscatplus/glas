@@ -121,12 +121,15 @@ class BaseScheduler:
         self.api.include_router(self.log_router)
 
     def init_extra_routes(self) -> None:
+        """Override this method to add extra custom routes."""
         pass
 
     def _extends_orchestrator_routes(self) -> None:
+        """Override this method to extends the orchestrator router."""
         pass
 
     def _extends_task_routes(self) -> None:
+        """Override this method to extend the task router."""
         pass
 
     def init_config_routes(self) -> None:

@@ -1,11 +1,9 @@
 """
 This module contains the base orchestrator used by the base scheduler in order to manager nodes and tasks.
 """
-import os
 import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, IO, BinaryIO
-import requests
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord, DBWorkflow, DBStep

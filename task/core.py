@@ -161,11 +161,28 @@ class Task:
 
         return None
 
-    def _pre_step_execution(self, current_node: BaseNode, src_node: BaseNode, dst_node: BaseNode):
+    def _pre_step_execution(self, current_node: BaseNode, src_node: BaseNode, dst_node: BaseNode) -> None:
+        """
+        Implement this method to add custom code that will be run before the execution of the step. This can include
+        some custom state check, resource availability, etc.
+
+        :param current_node: Node to be executed
+        :param src_node: Source node
+        :param dst_node: Destination node
+        """
         pass
 
-    def _post_step_execution(self, status: int, message: str, current_node: BaseNode, src_node: BaseNode,
-                             dst_node: BaseNode):
+    def _post_step_execution(self, status: int, message: Optional[str], current_node: BaseNode, src_node: BaseNode,
+                             dst_node: BaseNode) -> None:
+        """
+        Implement this method to add custom code that will be run after the execution of the step.
+
+        :param status: Status of the step execution
+        :param message: Message if any
+        :param current_node: Node that was executed
+        :param src_node: Source node
+        :param dst_node: Destination node
+        """
         pass
 
     def _run(self, step_id: int = 0) -> int:
