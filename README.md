@@ -17,3 +17,5 @@
   </p>
 </div>
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/swisscatplus/glas/pylint.yml) ![GitHub License](https://img.shields.io/github/license/swisscatplus/glas) ![GitHub top language](https://img.shields.io/github/languages/top/swisscatplus/glas)
+
