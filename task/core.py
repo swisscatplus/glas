@@ -211,6 +211,7 @@ class Task:
         self._post_step_execution(status, msg, cur_node, src_node, dst_node)
 
         if status != 0:
+            cur_node.set_error(msg)
             self.set_error()
             self.logger.error(f"Node execution error [{cur_node.name}]: {status}: {msg}")
             self._pause_event.set()
