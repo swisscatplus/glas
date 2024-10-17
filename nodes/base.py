@@ -9,14 +9,14 @@ from typing import Self, Optional, TypeVar
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
-from ..nodes.abc import ABCBaseNode
+from ..nodes.abc import IBaseNode
 from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..nodes.models import BaseNodeModel
 
 Workflow = TypeVar("Workflow")
 
 
-class BaseNode(ABCBaseNode):
+class BaseNode(IBaseNode):
     """
     Base class for all GLAS nodes. By default, no core execution has been implemented and is left to the developers in
     the _execute method.
@@ -144,7 +144,7 @@ class BaseNode(ABCBaseNode):
 
             self._post_execution(status, message, task_id, workflow.name, src, dst, args)
 
-            if status != 0:
+            if status != 0 or self.is_error():
                 self.state = NodeState.ERROR
                 DBNode.update_state(db, self.id, self.state.value)
                 DBNodeCallRecord.insert(db, self.id, endpoint, message, time.time() - start, "error")
@@ -185,6 +185,7 @@ class BaseNode(ABCBaseNode):
         """
         self.logger.info("restarting...")
         self.state = NodeState.RESTARTING
+        DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
 
         status = self._restart()
 
@@ -195,24 +196,25 @@ class BaseNode(ABCBaseNode):
             self.state = NodeState.ERROR
             self.logger.error(f"restart failed: {status}")
 
-        DBNode.update_state(DatabaseConnector(), self.id, self.state.value)
-
         return status
 
-    def shutdown(self):
+    def shutdown(self) -> int:
         """
         Shutdown the node
         """
         self.logger.warning("shutting down...")
+        self.state = NodeState.OFFLINE
+        DBNode.update_state(DatabaseConnector(), self.id, NodeState.OFFLINE.value)
 
         status = self._shutdown()
 
         if status == 0:
             self.logger.success("shutdown successfully")
         else:
+            self.state = NodeState.ERROR
             self.logger.error(f"shutdown failed: {status}")
 
-        DBNode.update_state(DatabaseConnector(), self.id, NodeState.OFFLINE.value)
+        return status
 
     def is_error(self) -> bool:
         return self.state == NodeState.ERROR

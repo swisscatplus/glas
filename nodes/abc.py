@@ -1,5 +1,5 @@
 """
-This module contains the abstract definition of a node. The BaseNode implements this abstract class for a common
+This module contains the interface definition of a node. The BaseNode implements this interface class for a common
 execution behavior across the project.
 """
 
@@ -10,9 +10,9 @@ from ..database import DatabaseConnector
 from ..nodes.models import BaseNodeModel
 
 
-class ABCBaseNode(ABC):
+class IBaseNode(ABC):
     """
-    Global all-purpose abstract base class for a node
+    Global all-purpose interface for a node
     """
 
     @abstractmethod

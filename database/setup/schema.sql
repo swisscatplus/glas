@@ -20,7 +20,8 @@ INSERT INTO `node_states` VALUES
 (2,'IN USE'),
 (3, 'OFFLINE'),
 (4, 'RECOVERY'),
-(5,'ERROR');
+(5,'ERROR'),
+(6, 'RESTARTING');
 UNLOCK TABLES;
 
 --

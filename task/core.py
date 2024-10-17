@@ -16,6 +16,7 @@ from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
 
+
 class Task:
     """
     The Task class works as a worker that spawn needs to have the run method spawned a thread to not block the execution
@@ -222,7 +223,7 @@ class Task:
 
                 if cur_node.next_node_execution() is NodeErrorNextStep.SELF:
                     self.logger.info(f"Please check if {cur_node.name} is ready for restart")
-                else:    
+                else:
                     self.logger.info(f"Manually move the plate from {cur_node.name} to {dst_node.name}")
                 self._pause_condition.wait()
 

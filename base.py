@@ -65,9 +65,9 @@ class BaseScheduler:
         self.token_router = APIRouter(prefix="/token", tags=["GLAS Tokens"])
         # @formatter:on
 
-        self.init_routes()
+        self._init_routes()
         self.init_extra_routes()
-        self.include_routers()
+        self._include_routers()
 
     def _http_exception_handler(self, request: Request, exc: HTTPException) -> JSONResponse:
         if exc.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]:
@@ -80,9 +80,9 @@ class BaseScheduler:
         if request.client.host != "127.0.0.1":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only localhost is allowed")
 
-    def _login_token(self, identifier: str):
+    def _generate_token(self, identifier: str) -> JSONResponse:
         access_token = jwt.create_access_token(data={"sub": identifier})
-        return {"token": access_token}
+        return JSONResponse(content={"token": access_token})
 
     def _verify_token(self, request: Request, token: str = Security(OAuth2PasswordBearer(tokenUrl="token"))) -> str:
         identifier = jwt.verify_token(token)
@@ -99,7 +99,7 @@ class BaseScheduler:
     def bind_logger_name(self, logger_name: str):
         self.logger = LoggingManager.get_logger("scheduler", app=logger_name)
 
-    def init_routes(self) -> None:
+    def _init_routes(self) -> None:
         self.init_orchestrator_routes()
         self.init_task_routes()
         self._extends_orchestrator_routes()
@@ -111,7 +111,7 @@ class BaseScheduler:
         self.init_token_routes()
         self.init_log_routes()
 
-    def include_routers(self) -> None:
+    def _include_routers(self) -> None:
         self.api.include_router(self.task_router)
         self.api.include_router(self.orchestrator_router)
         self.api.include_router(self.config_router)
@@ -184,7 +184,7 @@ class BaseScheduler:
         )
 
     def init_token_routes(self) -> None:
-        self.token_router.add_api_route("/{identifier}", self._login_token,
+        self.token_router.add_api_route("/{identifier}", self._generate_token,
                                         dependencies=[Security(self._verify_localhost)])
 
     def init_log_routes(self) -> None:
