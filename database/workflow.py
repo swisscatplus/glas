@@ -2,6 +2,8 @@
 This module contains the class used to interact with the `workflows` table in the database.
 """
 
+import json
+
 from .connector import DatabaseConnector
 from .models import DBWorkflowModel
 
@@ -39,7 +41,14 @@ class DBWorkflow:
         return DBWorkflowModel(**db.cursor.fetchone())
 
     @classmethod
-    def insert(cls, db: DatabaseConnector, name: str, source_node_id: str, destination_node_id: str):
-        sql = f"INSERT INTO {cls.__tablename__}(name, source_node_id, destination_node_id) VALUES(%s, %s, %s)"
-        data = (name, source_node_id, destination_node_id)
+    def insert(
+        cls,
+        db: DatabaseConnector,
+        name: str,
+        source_node_id: str,
+        destination_node_id: str,
+        args: dict,
+    ):
+        sql = f"INSERT INTO {cls.__tablename__}(name, source_node_id, destination_node_id, args) VALUES(%s, %s, %s, %s)"
+        data = (name, source_node_id, destination_node_id, json.dumps(args))
         db.cursor.execute(sql, data)

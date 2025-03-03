@@ -1,18 +1,21 @@
 """
 This module contains the base scheduler to be used to extend the scheduling behavior wanted by your laboratory.
 """
-import os
-from contextlib import asynccontextmanager
-from typing import Callable, Awaitable
 
-from fastapi import APIRouter, FastAPI, Request, Response, status, UploadFile, HTTPException, Security
+import os
+import re
+from contextlib import asynccontextmanager
+from typing import Awaitable, Callable
+
+from fastapi import (APIRouter, FastAPI, HTTPException, Request, Response,
+                     Security, UploadFile, status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordBearer
 from uvicorn import Config, Server
 
 from . import jwt
-from .database import DBTask, DatabaseConnector, DBWorkflow
+from .database import DatabaseConnector, DBTask, DBWorkflow
 from .database.access_logs import DBAccessLogs
 from .database.execution_logs import DBExecutionLogs
 from .database.logs import DBLogs
@@ -56,12 +59,36 @@ class BaseScheduler:
         self.server = Server(config=self.config)
 
         # @formatter:off
-        self.task_router = APIRouter(prefix="/task", tags=["GLAS Tasks"], dependencies=[Security(self._verify_token)])
-        self.orchestrator_router = APIRouter(prefix="/orchestrator", tags=["GLAS Orchestrator"], dependencies=[Security(self._verify_token)])
-        self.config_router = APIRouter(prefix="/config", tags=["GLAS Config"], dependencies=[Security(self._verify_token)])
-        self.node_router = APIRouter(prefix="/node", tags=["GLAS Nodes"], dependencies=[Security(self._verify_token)])
-        self.workflow_router = APIRouter(prefix="/workflow", tags=["GLAS Workflows"], dependencies=[Security(self._verify_token)])
-        self.log_router = APIRouter(prefix="/logs", tags=["GLAS Logs"], dependencies=[Security(self._verify_token)])
+        self.task_router = APIRouter(
+            prefix="/task",
+            tags=["GLAS Tasks"],
+            dependencies=[Security(self._verify_token)],
+        )
+        self.orchestrator_router = APIRouter(
+            prefix="/orchestrator",
+            tags=["GLAS Orchestrator"],
+            dependencies=[Security(self._verify_token)],
+        )
+        self.config_router = APIRouter(
+            prefix="/config",
+            tags=["GLAS Config"],
+            dependencies=[Security(self._verify_token)],
+        )
+        self.node_router = APIRouter(
+            prefix="/node",
+            tags=["GLAS Nodes"],
+            dependencies=[Security(self._verify_token)],
+        )
+        self.workflow_router = APIRouter(
+            prefix="/workflow",
+            tags=["GLAS Workflows"],
+            dependencies=[Security(self._verify_token)],
+        )
+        self.log_router = APIRouter(
+            prefix="/logs",
+            tags=["GLAS Logs"],
+            dependencies=[Security(self._verify_token)],
+        )
         self.token_router = APIRouter(prefix="/token", tags=["GLAS Tokens"])
         # @formatter:on
 
@@ -69,31 +96,58 @@ class BaseScheduler:
         self.init_extra_routes()
         self._include_routers()
 
-    def _http_exception_handler(self, request: Request, exc: HTTPException) -> JSONResponse:
+    def _http_exception_handler(
+        self, request: Request, exc: HTTPException
+    ) -> JSONResponse:
         if exc.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]:
-            DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path,
-                                request.method)
-            self.logger.warning(f"Unauthorized access to {request.url.path} from {request.client.host}")
-            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content=exc.detail)
+            DBAccessLogs.insert(
+                DatabaseConnector(),
+                request.client.host,
+                False,
+                None,
+                request.url.path,
+                request.method,
+            )
+            self.logger.warning(
+                f"Unauthorized access to {request.url.path} from {request.client.host}"
+            )
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED, content=exc.detail
+            )
 
     def _verify_localhost(self, request: Request) -> None:
         if request.client.host != "127.0.0.1":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Only localhost is allowed")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Only localhost is allowed",
+            )
 
     def _generate_token(self, identifier: str) -> JSONResponse:
         access_token = jwt.create_access_token(data={"sub": identifier})
         return JSONResponse(content={"token": access_token})
 
-    def _verify_token(self, request: Request, token: str = Security(OAuth2PasswordBearer(tokenUrl="token"))) -> str:
+    def _verify_token(
+        self,
+        request: Request,
+        token: str = Security(OAuth2PasswordBearer(tokenUrl="token")),
+    ) -> str:
         identifier = jwt.verify_token(token)
 
         if identifier is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Could not validate credentials",
-                                headers={"WWW-Authenticate": "Bearer"})
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-        DBAccessLogs.insert(DatabaseConnector(), request.client.host, True, identifier, request.url.path,
-                            request.method)
+        DBAccessLogs.insert(
+            DatabaseConnector(),
+            request.client.host,
+            True,
+            identifier,
+            request.url.path,
+            request.method,
+        )
         return identifier
 
     def bind_logger_name(self, logger_name: str):
@@ -133,7 +187,9 @@ class BaseScheduler:
         pass
 
     def init_config_routes(self) -> None:
-        self.config_router.add_api_route("/reload", self.reload_config, methods=["PATCH"])
+        self.config_router.add_api_route(
+            "/reload", self.reload_config, methods=["PATCH"]
+        )
 
     def init_workflow_routes(self) -> None:
         self.workflow_router.add_api_route("/", self.get_workflows, methods=["GET"])
@@ -141,15 +197,29 @@ class BaseScheduler:
     def init_task_routes(self) -> None:
         # the route ordering matters ! Do NOT put the /{task_id} up in any case !
         self.task_router.add_api_route("/", self.lab_add_task, methods=["POST"])
-        self.task_router.add_api_route("/running", self.get_running, methods=["GET"],
-                                       responses={status.HTTP_200_OK: {"model": list[TaskModel]}})
-        self.task_router.add_api_route("/pause/{task_id}", self.pause_task, methods=["PATCH"])
-        self.task_router.add_api_route("/continue/{task_id}", self.continue_task, methods=["PATCH"])
-        self.task_router.add_api_route("/{task_id}", self.get_task_info, methods=["GET"])
+        self.task_router.add_api_route(
+            "/running",
+            self.get_running,
+            methods=["GET"],
+            responses={status.HTTP_200_OK: {"model": list[TaskModel]}},
+        )
+        self.task_router.add_api_route(
+            "/pause/{task_id}", self.pause_task, methods=["PATCH"]
+        )
+        self.task_router.add_api_route(
+            "/continue/{task_id}", self.continue_task, methods=["PATCH"]
+        )
+        self.task_router.add_api_route(
+            "/{task_id}", self.get_task_info, methods=["GET"]
+        )
 
     def init_node_routes(self) -> None:
-        self.node_router.add_api_route("/restart/{node_id}", self.restart_node, methods=["PATCH"])
-        self.node_router.add_api_route("/status/{node_id}", self.get_node_info, methods=["GET"])
+        self.node_router.add_api_route(
+            "/restart/{node_id}", self.restart_node, methods=["PATCH"]
+        )
+        self.node_router.add_api_route(
+            "/status/{node_id}", self.get_node_info, methods=["GET"]
+        )
 
     def init_orchestrator_routes(self) -> None:
         self.orchestrator_router.add_api_route(
@@ -158,8 +228,12 @@ class BaseScheduler:
             methods=["POST"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
-                status.HTTP_204_NO_CONTENT: {"description": "The orchestrator successfully started"},
-                status.HTTP_409_CONFLICT: {"description": "The orchestrator is already running"},
+                status.HTTP_204_NO_CONTENT: {
+                    "description": "The orchestrator successfully started"
+                },
+                status.HTTP_409_CONFLICT: {
+                    "description": "The orchestrator is already running"
+                },
             },
         )
         self.orchestrator_router.add_api_route(
@@ -168,8 +242,12 @@ class BaseScheduler:
             methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
             responses={
-                status.HTTP_204_NO_CONTENT: {"description": "The orchestrator successfully stopped."},
-                status.HTTP_409_CONFLICT: {"description": "The orchestrator is already stopped."},
+                status.HTTP_204_NO_CONTENT: {
+                    "description": "The orchestrator successfully stopped."
+                },
+                status.HTTP_409_CONFLICT: {
+                    "description": "The orchestrator is already stopped."
+                },
             },
         )
         self.orchestrator_router.add_api_route(
@@ -184,19 +262,35 @@ class BaseScheduler:
         )
 
     def init_token_routes(self) -> None:
-        self.token_router.add_api_route("/{identifier}", self._generate_token,
-                                        dependencies=[Security(self._verify_localhost)])
+        self.token_router.add_api_route(
+            "/{identifier}",
+            self._generate_token,
+            dependencies=[Security(self._verify_localhost)],
+        )
 
     def init_log_routes(self) -> None:
         self.log_router.add_api_route("/", self._logs)
         self.log_router.add_api_route("/execution", self._get_execution_logs)
 
-    async def _ip_whitelist_middleware(self, request: Request,
-                                       call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def _ip_whitelist_middleware(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         if request.client.host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
-            self.logger.warning(f"Not allowed ip ({request.client.host}) tried to access {request.url.path}")
-            DBAccessLogs.insert(DatabaseConnector(), request.client.host, False, None, request.url.path, request.method)
-            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "IP not allowed"})
+            self.logger.warning(
+                f"Not allowed ip ({request.client.host}) tried to access {request.url.path}"
+            )
+            DBAccessLogs.insert(
+                DatabaseConnector(),
+                request.client.host,
+                False,
+                None,
+                request.url.path,
+                request.method,
+            )
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={"detail": "IP not allowed"},
+            )
 
         response = await call_next(request)
         return response
@@ -224,7 +318,9 @@ class BaseScheduler:
             if log.task_id not in grouped_logs:
                 grouped_logs[log.task_id] = []
 
-            grouped_logs[log.task_id].append({"log": log.model_dump(), "wf": wf.model_dump()})
+            grouped_logs[log.task_id].append(
+                {"log": log.model_dump(), "wf": wf.model_dump()}
+            )
 
         return grouped_logs
 
@@ -240,21 +336,29 @@ class BaseScheduler:
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
-                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist")
+                return PlainTextResponse(
+                    status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist"
+                )
 
             case OrchestratorErrorCodes.CANCELLED:
-                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                         content="Task pause failed")
+                return PlainTextResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content="Task pause failed",
+                )
 
     def continue_task(self, task_id: str):
         err_code = self.orchestrator.continue_task(task_id)
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
-                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist")
+                return PlainTextResponse(
+                    status_code=status.HTTP_404_NOT_FOUND, content="Task does not exist"
+                )
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
-                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                         content="Task continuation failed")
+                return PlainTextResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content="Task continuation failed",
+                )
 
     def get_workflows(self):
         """Get all the workflows with their steps."""
@@ -262,7 +366,10 @@ class BaseScheduler:
         steps = {}
 
         for workflow in workflows:
-            steps[workflow.name] = self.orchestrator.get_steps(workflow.id)
+            steps[workflow.name] = {
+                "steps": self.orchestrator.get_steps(workflow.id),
+                "args": workflow.args,
+            }
 
         return steps
 
@@ -271,7 +378,10 @@ class BaseScheduler:
         db_task = DBTask.get(db, task_id)
 
         if db_task is None:
-            return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"task": None, "workflow": None})
+            return JSONResponse(
+                status_code=status.HTTP_204_NO_CONTENT,
+                content={"task": None, "workflow": None},
+            )
 
         db_workflow = DBWorkflow.get_by_id(db, db_task.workflow_id)
         return {"task": db_task, "workflow": db_workflow}
@@ -281,16 +391,22 @@ class BaseScheduler:
 
         match err_code:
             case OrchestratorErrorCodes.CONTENT_NOT_FOUND:
-                return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist")
+                return PlainTextResponse(
+                    status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist"
+                )
             case OrchestratorErrorCodes.CONTINUE_TASK_FAILED:
-                return PlainTextResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                         content="Node restart failed")
+                return PlainTextResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content="Node restart failed",
+                )
 
-    def get_node_info(self, node_id:str):
+    def get_node_info(self, node_id: str):
         node = self.orchestrator.get_node_by_id(node_id)
         if node is None:
-            return PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist")
-        
+            return PlainTextResponse(
+                status_code=status.HTTP_404_NOT_FOUND, content="Node does not exist"
+            )
+
         return node.serialize()
 
     def reload_config(self, files: list[UploadFile]):
@@ -298,21 +414,31 @@ class BaseScheduler:
 
         if len(self.orchestrator.running_tasks) != 0:
             self.logger.info("some tasks are still running, cancelling config reload")
-            return JSONResponse(status_code=status.HTTP_428_PRECONDITION_REQUIRED,
-                                content={"loaded_workflows": 0, "loaded_nodes": 0})
+            return JSONResponse(
+                status_code=status.HTTP_428_PRECONDITION_REQUIRED,
+                content={"loaded_workflows": 0, "loaded_nodes": 0},
+            )
 
         for node in self.orchestrator.nodes:
             node.shutdown()
 
-        if (err_code := self.orchestrator.load_config(files[0].file, files[1].file)) != OrchestratorErrorCodes.OK:
+        if (
+            err_code := self.orchestrator.load_config(files[0].file, files[1].file)
+        ) != OrchestratorErrorCodes.OK:
             self.logger.error(f"Failed to load config: {err_code}")
-            return JSONResponse(status_code=status.HTTP_201_CREATED,
-                                content={"loaded_workflows": -1, "loaded_nodes": -1})
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content={"loaded_workflows": -1, "loaded_nodes": -1},
+            )
 
         self.logger.success("config reloaded")
 
-        return JSONResponse(content={"loaded_workflows": len(self.orchestrator.workflows),
-                                     "loaded_nodes": len(self.orchestrator.nodes)})
+        return JSONResponse(
+            content={
+                "loaded_workflows": len(self.orchestrator.workflows),
+                "loaded_nodes": len(self.orchestrator.nodes),
+            }
+        )
 
     def stop(self, response: Response):
         """Stop the orchestrator."""
@@ -334,7 +460,9 @@ class BaseScheduler:
 
     def get_running(self):
         """Retrieve all the running task."""
-        running_workflows = [task.serialize() for _, task in self.orchestrator.running_tasks]
+        running_workflows = [
+            task.serialize() for _, task in self.orchestrator.running_tasks
+        ]
         return running_workflows
 
     def lab_add_task(self, data: PostTask, response: Response):
@@ -349,6 +477,63 @@ class BaseScheduler:
         if wf is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return data
+
+        # check arguments are present
+        if (wf.args is not None and data.args is None) or (
+            wf.args.keys() != data.args.keys()
+        ):
+            missing_args = wf.args.keys() - (data.args.keys() if data.args else set())
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return f"Missing arguments: {', '.join(missing_args)}"
+
+        # check arguments are valid
+        if data.args is not None:
+            invalid_args = []
+            type_validators = {
+                "integer": lambda x: isinstance(x, int),
+                "float": lambda x: isinstance(x, float),
+                "string": lambda x: isinstance(x, str),
+                "boolean": lambda x: isinstance(x, bool),
+                "array": lambda x: isinstance(x, list),
+            }
+
+            for arg_name, constraints in wf.args.items():
+                arg_type = constraints.get("type")
+                arg_value = data.args.get(arg_name)
+
+                if arg_type not in type_validators:
+                    response.status_code = status.HTTP_400_BAD_REQUEST
+                    return f"Invalid argument type: {arg_type}"
+                
+                if not type_validators[arg_type](arg_value):
+                    invalid_args.append(f"{arg_name} is not a valid {arg_type}")
+                    continue
+
+                if arg_type in {"integer", "float"}:
+                    minimum = constraints.get("minimum")
+                    maximum = constraints.get("maximum")
+
+                    if minimum is not None and arg_value < minimum:
+                        invalid_args.append(f"{arg_name} is below minimum value")
+                    if maximum is not None and arg_value > maximum:
+                        invalid_args.append(f"{arg_name} is above maximum value")
+                elif arg_type == "string":
+                    max_length = constraints.get("maxLength")
+                    pattern = constraints.get("pattern", ".*")
+
+                    if max_length is not None and len(arg_value) > max_length:
+                        invalid_args.append(f"{arg_name} is too long")
+                    if not re.match(pattern, arg_value):
+                        invalid_args.append(f"{arg_name} does not match pattern")
+                elif arg_type == "array":
+                    max_items = constraints.get("maxItems")
+
+                    if max_items is not None and len(arg_value) > max_items:
+                        invalid_args.append(f"{arg_name} has too many items")
+            
+            if invalid_args:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return invalid_args
 
         task = self.orchestrator.add_task(wf, data.args)
         return task.serialize()

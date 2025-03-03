@@ -16,3 +16,4 @@ class WorkflowModel(BaseModel):
     source: BaseNodeModel
     destination: BaseNodeModel
     steps: list[BaseNodeModel]
+    args: dict | None

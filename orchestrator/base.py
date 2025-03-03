@@ -177,20 +177,21 @@ class BaseOrchestrator(ABC):
         database = DatabaseConnector()
         for workflow in workflows_json:
             wf_name = workflow["name"]
+            wf_args = workflow["args"] if "args" in workflow else {}
             wf_steps = [self.get_node_by_id(node) for node in workflow["steps"]]
             if None in wf_steps:
                 self.logger.error(f"Error importing node in workflow '{wf_name}'")
                 return OrchestratorErrorCodes.COULD_NOT_PARSE_CONFIGURATION
             
             if not DBWorkflow.exists(database, wf_name):
-                DBWorkflow.insert(database, wf_name, wf_steps[0].id, wf_steps[-1].id)
+                DBWorkflow.insert(database, wf_name, wf_steps[0].id, wf_steps[-1].id, wf_args)
 
             db_workflow = DBWorkflow.get_by_name(database, wf_name)
 
             for pos, step in enumerate(wf_steps):
                 DBStep.insert(database, db_workflow.id, step.id, pos)
 
-            self.workflows.append(Workflow(db_workflow.id, db_workflow.name, wf_steps))
+            self.workflows.append(Workflow(db_workflow.id, db_workflow.name, wf_steps, wf_args))
         
         return OrchestratorErrorCodes.OK
 

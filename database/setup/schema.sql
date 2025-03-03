@@ -102,6 +102,7 @@ CREATE TABLE `workflows` (
   `name` varchar(255) NOT NULL,
   `source_node_id` varchar(255) NOT NULL,
   `destination_node_id` varchar(255) NOT NULL,
+  `args` varchar(255) NULL,
   PRIMARY KEY (`id`),
   KEY `source_node_id` (`source_node_id`),
   KEY `destination_node_id` (`destination_node_id`),

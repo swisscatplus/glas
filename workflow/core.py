@@ -2,7 +2,7 @@
 This module contains the class that defines a workflow.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ..nodes.base import BaseNode
 from .models import WorkflowModel
@@ -14,7 +14,9 @@ class Workflow:
     a task.
     """
 
-    def __init__(self, _id: int, name: str, steps: list[BaseNode]) -> None:
+    def __init__(
+        self, _id: int, name: str, steps: list[BaseNode], args: Optional[dict] = None
+    ) -> None:
         if len(steps) < 2:
             raise ValueError("Steps must at least have 2 nodes")
         self.id = _id
@@ -22,6 +24,7 @@ class Workflow:
         self.steps = steps
         self.source = steps[0]
         self.destination = steps[-1]
+        self.args = args
 
     def __repr__(self) -> str:
         return f"{self.source} - {self.destination}"
@@ -33,6 +36,7 @@ class Workflow:
             source=self.source.serialize(),
             destination=self.destination.serialize(),
             steps=[step.serialize() for step in self.steps],
+            args=self.args,
         )
 
     def model_dump(self) -> dict[str, Any]:
