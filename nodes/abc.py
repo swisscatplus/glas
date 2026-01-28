@@ -4,7 +4,7 @@ execution behavior across the project.
 """
 
 from abc import ABC, abstractmethod
-from typing import Self
+from typing_extensions import Self
 
 from ..database import DatabaseConnector
 from ..nodes.models import BaseNodeModel

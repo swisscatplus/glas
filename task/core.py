@@ -6,7 +6,7 @@ import errno
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Self, Optional
+from typing_extensions import Callable, Self, Optional
 
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager

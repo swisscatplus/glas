@@ -35,6 +35,7 @@ class DatabaseConnector:
                 port=int(os.getenv("DATABASE_PORT")),
             )
 
+        print(config)
         try:
             self.conn = connector.connect(**config)
             self.conn.autocommit = True
