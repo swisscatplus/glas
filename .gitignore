@@ -1,3 +1,5 @@
 **/__pycache__/
 .idea/
 **/.venv/
+.env
+database/setup/.env

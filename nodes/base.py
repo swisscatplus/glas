@@ -5,7 +5,7 @@ manner also allows to have a common logging scheme and basic error handling.
 
 import threading
 import time
-from typing_extensions import Self, Optional, TypeVar
+from typing import Self, Optional, TypeVar
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
