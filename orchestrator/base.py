@@ -177,7 +177,7 @@ class BaseOrchestrator(ABC):
         database = DatabaseConnector()
         for workflow in workflows_json:
             wf_name = workflow["name"]
-            wf_args = workflow["args"] if "args" in workflow else None
+            wf_args = workflow["args"] if "args" in workflow else {}
             wf_steps = [self.get_node_by_id(node) for node in workflow["steps"]]
             if None in wf_steps:
                 self.logger.error(f"Error importing node in workflow '{wf_name}'")
