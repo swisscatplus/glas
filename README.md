@@ -21,3 +21,5 @@
 
 > [!IMPORTANT]
 > Please refer to the wiki [available here](https://github.com/swisscatplus/glas/wiki) before proceeding to use GLAS.
+>
+> Full documentation here too : [available here](https://deepwiki.com/swisscatplus/glas)
