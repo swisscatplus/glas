@@ -34,10 +34,10 @@ class DatabaseConnector:
                 database=os.getenv("DATABASE_NAME"),
                 port=int(os.getenv("DATABASE_PORT")),
             )
-
         try:
             self.conn = connector.connect(**config)
-            self.conn.autocommit = True
+            if hasattr(self.conn, 'autocommit'):
+                self.conn.autocommit = True
             self.cursor = self.conn.cursor(dictionary=True)
         except mysql.connector.errors.DatabaseError:
             self.cursor = None

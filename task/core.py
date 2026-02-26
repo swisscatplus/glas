@@ -6,7 +6,7 @@ import errno
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Self, Optional
+from typing import Callable, Self, Optional, Any
 
 from ..database import DatabaseConnector, DBTask
 from ..logger import LoggingManager
@@ -15,6 +15,8 @@ from ..nodes.enums import NodeState, NodeErrorNextStep
 from ..task.enums import TaskState
 from ..task.models import TaskModel
 from ..workflow.core import Workflow
+from contextlib import nullcontext
+from typing import ContextManager
 
 
 class Task:
@@ -23,7 +25,7 @@ class Task:
     of the scheduler itself. When task is self-managed and handles steps (node) execution error.
     """
 
-    def __init__(self, workflow: Workflow, args: dict[str, any] = None):
+    def __init__(self, workflow: Workflow, args: Optional[dict[str, Any]] = None):
         self._start_time = datetime.now()
         self._uuid = uuid.uuid4()
         self._workflow = workflow
@@ -138,6 +140,10 @@ class Task:
             self._pause_condition.notify()
 
         return 0
+    
+    def _task_context(self) -> ContextManager[None]:
+        """Override in subclasses to add behavior around the whole task duration."""
+        return nullcontext()
 
     def _recursion_exit(self, step_id: int) -> Optional[int]:
         # check task interruption
@@ -248,10 +254,13 @@ class Task:
         self.set_active()
         self.logger.info("started")
 
-        status = self._run()
-        if status == 0:
-            self.set_finished()
-            self.logger.success("finished")
-
-        callback(threading.current_thread(), self)
-        return status
+        status: int = 1
+        try:
+            with self._task_context():
+                status = self._run()
+                if status == 0:
+                    self.set_finished()
+                    self.logger.success("finished")
+                return status
+        finally:
+            callback(threading.current_thread(), self)

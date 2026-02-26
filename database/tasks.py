@@ -4,7 +4,7 @@ This module contains the class used to interact with the `tasks` table in the da
 
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 from .connector import DatabaseConnector
 from .models import TasksStatisticsEntry, DBTaskModel
@@ -37,7 +37,7 @@ class DBTask:
         db.cursor.execute(sql)
 
     @classmethod
-    def insert(cls, db: DatabaseConnector, uuid: str, workflow_id: int, args: Optional[dict[str, any]] = None):
+    def insert(cls, db: DatabaseConnector, uuid: str, workflow_id: int, args: Optional[dict[str, Any]] = None):
         sql = f"INSERT INTO {cls.__tablename__}(id, workflow_id, task_state_id, args) VALUES(%s, %s, 1, %s)"
         data = (uuid, workflow_id, json.dumps(args) if args is not None else None)
         db.cursor.execute(sql, data)

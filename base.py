@@ -100,23 +100,30 @@ class BaseScheduler:
         self, request: Request, exc: HTTPException
     ) -> JSONResponse:
         if exc.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]:
+            client_host = request.client.host if request.client else "unknown"
             DBAccessLogs.insert(
                 DatabaseConnector(),
-                request.client.host,
+                client_host,
                 False,
                 None,
                 request.url.path,
                 request.method,
             )
             self.logger.warning(
-                f"Unauthorized access to {request.url.path} from {request.client.host}"
+                f"Unauthorized access to {request.url.path} from {client_host}"
             )
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED, content=exc.detail
             )
+  
+        # Handle other exceptions
+        return JSONResponse(
+            status_code=exc.status_code, content=exc.detail
+        )
 
     def _verify_localhost(self, request: Request) -> None:
-        if request.client.host != "127.0.0.1":
+        client_host = request.client.host if request.client else "unknown"
+        if client_host != "127.0.0.1":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Only localhost is allowed",
@@ -275,13 +282,14 @@ class BaseScheduler:
     async def _ip_whitelist_middleware(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        if request.client.host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
+        client_host = request.client.host if request.client else "unknown"
+        if client_host not in os.getenv("AUTHORIZED_IPS", "").split(" "):
             self.logger.warning(
-                f"Not allowed ip ({request.client.host}) tried to access {request.url.path}"
+                f"Not allowed ip ({client_host}) tried to access {request.url.path}"
             )
             DBAccessLogs.insert(
                 DatabaseConnector(),
-                request.client.host,
+                client_host,
                 False,
                 None,
                 request.url.path,
@@ -296,10 +304,12 @@ class BaseScheduler:
         return response
 
     def run(self) -> None:
-        self.logger.info(f"started on {self.config.host}:{self.config.port}")
+        if self.logger:
+            self.logger.info(f"started on {self.config.host}:{self.config.port}")
 
         if (err_code := self.orchestrator.start()) != OrchestratorErrorCodes.OK:
-            self.logger.critical(f"Failed to start orchestrator: {err_code}")
+            if self.logger:
+                self.logger.critical(f"Failed to start orchestrator: {err_code}")
             return
 
         self.server.run()  # need to run as last
@@ -410,10 +420,12 @@ class BaseScheduler:
         return node.serialize()
 
     def reload_config(self, files: list[UploadFile]):
-        self.logger.info("reloading config...")
+        if self.logger:
+            self.logger.info("reloading config...")
 
         if len(self.orchestrator.running_tasks) != 0:
-            self.logger.info("some tasks are still running, cancelling config reload")
+            if self.logger:
+                self.logger.info("some tasks are still running, cancelling config reload")
             return JSONResponse(
                 status_code=status.HTTP_428_PRECONDITION_REQUIRED,
                 content={"loaded_workflows": 0, "loaded_nodes": 0},
@@ -425,13 +437,15 @@ class BaseScheduler:
         if (
             err_code := self.orchestrator.load_config(files[0].file, files[1].file)
         ) != OrchestratorErrorCodes.OK:
-            self.logger.error(f"Failed to load config: {err_code}")
+            if self.logger:
+                self.logger.error(f"Failed to load config: {err_code}")
             return JSONResponse(
                 status_code=status.HTTP_201_CREATED,
                 content={"loaded_workflows": -1, "loaded_nodes": -1},
             )
 
-        self.logger.success("config reloaded")
+        if self.logger:
+            self.logger.success("config reloaded")
 
         return JSONResponse(
             content={
@@ -468,7 +482,8 @@ class BaseScheduler:
     def lab_add_task(self, data: PostTask, response: Response):
         """Add a new task to execute."""
         if not self.orchestrator.is_running():
-            self.logger.error("The orchestrator is not running")
+            if self.logger:
+                self.logger.error("The orchestrator is not running")
             response.status_code = status.HTTP_418_IM_A_TEAPOT
             return {}
 

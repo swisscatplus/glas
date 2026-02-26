@@ -4,10 +4,13 @@ execution behavior across the project.
 """
 
 from abc import ABC, abstractmethod
-from typing import Self
+from typing import Self, Any, Optional, TYPE_CHECKING
 
 from ..database import DatabaseConnector
 from ..nodes.models import BaseNodeModel
+
+if TYPE_CHECKING:
+    from ..workflow.core import Workflow
 
 
 class IBaseNode(ABC):
@@ -17,7 +20,7 @@ class IBaseNode(ABC):
 
     @abstractmethod
     def execute(self, db: DatabaseConnector, task_id: str, workflow: "Workflow", src: Self, dst: Self,
-                args: dict[str, any] = None) -> tuple[int, str | None]:
+                args: Optional[dict[str, Any]] = None) -> tuple[int, str | None]:
         """
         Execute the node core code
 

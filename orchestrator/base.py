@@ -4,7 +4,7 @@ This module contains the base orchestrator used by the base scheduler in order t
 import json
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, IO, BinaryIO
+from typing import Callable, Optional, IO, BinaryIO, Any
 
 from .enums import OrchestratorErrorCodes
 from ..database import DatabaseConnector, DBTask, DBWorkflowUsageRecord, DBWorkflow, DBStep
@@ -177,7 +177,7 @@ class BaseOrchestrator(ABC):
         database = DatabaseConnector()
         for workflow in workflows_json:
             wf_name = workflow["name"]
-            wf_args = workflow["args"] if "args" in workflow else {}
+            wf_args = workflow["args"] if "args" in workflow else None
             wf_steps = [self.get_node_by_id(node) for node in workflow["steps"]]
             if None in wf_steps:
                 self.logger.error(f"Error importing node in workflow '{wf_name}'")
@@ -314,7 +314,7 @@ class BaseOrchestrator(ABC):
 
         return OrchestratorErrorCodes.OK
 
-    def add_task(self, workflow: Workflow, args: Optional[dict[str, any]] = None) -> Task:
+    def add_task(self, workflow: Workflow, args: Optional[dict[str, Any]] = None) -> Task:
         """
         Add a task to the orchestrator
 

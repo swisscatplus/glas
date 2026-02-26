@@ -5,7 +5,7 @@ manner also allows to have a common logging scheme and basic error handling.
 
 import threading
 import time
-from typing import Self, Optional, TypeVar
+from typing import Self, Optional, TypeVar, Any
 
 from ..database import DatabaseConnector, DBNodeCallRecord, DBNode
 from ..logger import LoggingManager
@@ -36,7 +36,7 @@ class BaseNode(IBaseNode):
         return self.name
 
     def _pre_execution(self, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
-                       args: Optional[dict[str, any]] = None) -> None:
+                       args: Optional[dict[str, Any]] = None) -> None:
         """
         Method execute just before the _execute call.
 
@@ -48,7 +48,7 @@ class BaseNode(IBaseNode):
         """
 
     def _post_execution(self, status: int, msg: str, task_id: str, wf_name: str, src: "BaseNode", dst: "BaseNode",
-                        args: Optional[dict[str, any]] = None) -> None:
+                        args: Optional[dict[str, Any]] = None) -> None:
         """
         Method execute just after the _execute call.
 
@@ -69,7 +69,7 @@ class BaseNode(IBaseNode):
         """
         return True
 
-    def _execute(self, src: Self, dst: Self, task_id: str, args: Optional[dict[str, any]] = None) -> tuple[
+    def _execute(self, src: Self, dst: Self, task_id: str, args: Optional[dict[str, Any]] = None) -> tuple[
         int, Optional[str], Optional[str]]:
         """
         Node specific implementation of its own execution logic
@@ -102,7 +102,7 @@ class BaseNode(IBaseNode):
         return NodeErrorNextStep.NEXT
 
     def execute(self, db: DatabaseConnector, task_id: str, workflow: "Workflow", src: Self, dst: Self,
-                args: Optional[dict[str, any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
+                args: Optional[dict[str, Any]] = None, save: bool = True) -> tuple[int, Optional[str]]:
         """
         Common wrapper around the specific `_execute` method.
 
